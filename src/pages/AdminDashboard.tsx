@@ -9,10 +9,13 @@ import { whatsappService } from '../services/whatsappService';
 import { format, parse, startOfWeek, getDay, addMinutes, startOfMonth, endOfMonth, isWithinInterval, subMonths, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar, dateFnsLocalizer, View, Views } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const locales = { 'pt-BR': ptBR };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+const DnDCalendar = withDragAndDrop(Calendar);
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -51,7 +54,22 @@ export default function AdminDashboard() {
   });
 
   const [managerScheduleForm, setManagerScheduleForm] = useState({
-    clientId: '', address: '', environmentsCount: 1, date: '', time: ''
+    clientId: '',
+    projectName: '',
+    zipCode: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    condominiumName: '',
+    contactName: '',
+    contactPhone: '',
+    environmentsCount: 1,
+    estimatedMinutes: 60,
+    date: '',
+    time: ''
   });
 
   // Estado do formulário de cliente
@@ -305,7 +323,65 @@ export default function AdminDashboard() {
   };
 
   const handleSelectSlot = (slotInfo: { start: Date, end: Date }) => {
-    setBlockTimeModalOpen({ start: slotInfo.start, end: slotInfo.end });
+    setManagerScheduleForm({
+      ...managerScheduleForm,
+      date: format(slotInfo.start, 'yyyy-MM-dd'),
+      time: format(slotInfo.start, 'HH:mm'),
+      estimatedMinutes: Math.round((slotInfo.end.getTime() - slotInfo.start.getTime()) / 60000)
+    });
+    setManagerScheduleModalOpen(true);
+  };
+
+  const onEventDrop = async ({ event, start, end }: any) => {
+    if (event.type === 'blocked') {
+      try {
+        await blockedTimeService.updateBlockedTime(event.id, {
+          start: start.toISOString(),
+          end: end.toISOString()
+        });
+        fetchData();
+      } catch (error) {
+        alert("Erro ao mover bloqueio.");
+      }
+    } else if (event.type === 'request') {
+      try {
+        const estimatedMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+        await requestService.updateRequestStatus(event.id, event.status, {
+          requestedDate: format(start, 'yyyy-MM-dd'),
+          requestedTime: format(start, 'HH:mm'),
+          estimatedMinutes
+        });
+        fetchData();
+      } catch (error) {
+        alert("Erro ao mover medição.");
+      }
+    }
+  };
+
+  const onEventResize = async ({ event, start, end }: any) => {
+    if (event.type === 'blocked') {
+      try {
+        await blockedTimeService.updateBlockedTime(event.id, {
+          start: start.toISOString(),
+          end: end.toISOString()
+        });
+        fetchData();
+      } catch (error) {
+        alert("Erro ao redimensionar bloqueio.");
+      }
+    } else if (event.type === 'request') {
+      try {
+        const estimatedMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+        await requestService.updateRequestStatus(event.id, event.status, {
+          requestedDate: format(start, 'yyyy-MM-dd'),
+          requestedTime: format(start, 'HH:mm'),
+          estimatedMinutes
+        });
+        fetchData();
+      } catch (error) {
+        alert("Erro ao redimensionar medição.");
+      }
+    }
   };
 
   const handleCreateBlockedTime = async (e: React.FormEvent) => {
@@ -344,23 +420,86 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, '');
+    setManagerScheduleForm({ ...managerScheduleForm, zipCode: e.target.value });
+    
+    if (cep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setManagerScheduleForm(prev => ({
+            ...prev,
+            street: data.logradouro,
+            neighborhood: data.bairro,
+            city: data.localidade,
+            state: data.uf
+          }));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+      }
+    }
+  };
+
   const handleManagerScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const client = clients.find(c => c.id === managerScheduleForm.clientId);
     if (!client || !client.id) return;
+
+    // Check for double booking
+    const start = new Date(`${managerScheduleForm.date}T${managerScheduleForm.time}:00`);
+    const end = addMinutes(start, managerScheduleForm.estimatedMinutes);
+    
+    const hasConflict = [...requests, ...blockedTimes].some(event => {
+      let eventStart, eventEnd;
+      
+      if ('requestedDate' in event) {
+        if (event.status === 'rejected') return false;
+        eventStart = new Date(`${event.requestedDate}T${event.requestedTime}:00`);
+        eventEnd = addMinutes(eventStart, event.estimatedMinutes);
+      } else {
+        eventStart = new Date(event.start);
+        eventEnd = new Date(event.end);
+      }
+
+      return (start < eventEnd && end > eventStart);
+    });
+
+    if (hasConflict) {
+      alert("Já existe uma medição ou bloqueio neste horário. Por favor, escolha outro horário.");
+      return;
+    }
+
     try {
+      const fullAddress = `${managerScheduleForm.street}, ${managerScheduleForm.number}${managerScheduleForm.complement ? ` - ${managerScheduleForm.complement}` : ''}, ${managerScheduleForm.neighborhood}, ${managerScheduleForm.city} - ${managerScheduleForm.state}, CEP: ${managerScheduleForm.zipCode}`;
+      
       await requestService.createRequest({
         clientId: client.id,
         clientName: client.name,
-        address: managerScheduleForm.address,
+        projectName: managerScheduleForm.projectName,
+        address: fullAddress,
+        zipCode: managerScheduleForm.zipCode,
+        street: managerScheduleForm.street,
+        number: managerScheduleForm.number,
+        complement: managerScheduleForm.complement,
+        neighborhood: managerScheduleForm.neighborhood,
+        city: managerScheduleForm.city,
+        state: managerScheduleForm.state,
+        condominiumName: managerScheduleForm.condominiumName,
+        contactName: managerScheduleForm.contactName,
+        contactPhone: managerScheduleForm.contactPhone,
         environmentsCount: managerScheduleForm.environmentsCount,
-        estimatedMinutes: managerScheduleForm.environmentsCount * 30,
+        estimatedMinutes: managerScheduleForm.estimatedMinutes,
         requestedDate: managerScheduleForm.date,
         requestedTime: managerScheduleForm.time,
         status: 'confirmed'
       });
       setManagerScheduleModalOpen(false);
-      setManagerScheduleForm({ clientId: '', address: '', environmentsCount: 1, date: '', time: '' });
+      setManagerScheduleForm({
+        clientId: '', projectName: '', zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '', environmentsCount: 1, estimatedMinutes: 60, date: '', time: ''
+      });
       fetchData();
     } catch (error) {
       alert("Erro ao agendar medição.");
@@ -674,7 +813,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
-                <Calendar
+                <DnDCalendar
                   localizer={localizer}
                   events={calendarEvents}
                   startAccessor="start"
@@ -687,6 +826,9 @@ export default function AdminDashboard() {
                   eventPropGetter={eventStyleGetter}
                   selectable={true}
                   onSelectSlot={handleSelectSlot}
+                  onEventDrop={onEventDrop}
+                  onEventResize={onEventResize}
+                  resizable={true}
                   messages={{
                     next: "Próximo", previous: "Anterior", today: "Hoje", month: "Mês", week: "Semana", day: "Dia", agenda: "Agenda", noEventsInRange: "Não há eventos neste período."
                   }}

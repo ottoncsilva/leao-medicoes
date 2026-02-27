@@ -7,7 +7,18 @@ export interface MeasurementRequest {
   id?: string;
   clientId: string; // ID da loja que solicitou
   clientName: string;
+  projectName?: string;
   address: string;
+  zipCode?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  condominiumName?: string;
+  contactName?: string;
+  contactPhone?: string;
   environmentsCount: number;
   estimatedMinutes: number;
   requestedDate: string; // Formato YYYY-MM-DD
