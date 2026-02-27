@@ -26,11 +26,16 @@ export const clientService = {
   // Criar um novo cliente
   async createClient(clientData: Omit<Client, 'id' | 'createdAt'>) {
     try {
+      // Remove undefined values to prevent Firebase errors
+      const cleanData = Object.fromEntries(
+        Object.entries(clientData).filter(([_, v]) => v !== undefined)
+      );
+      
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-        ...clientData,
+        ...cleanData,
         createdAt: new Date()
       });
-      return { id: docRef.id, ...clientData };
+      return { id: docRef.id, ...cleanData };
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
       throw error;
@@ -54,8 +59,13 @@ export const clientService = {
   // Atualizar cliente existente
   async updateClient(id: string, clientData: Partial<Client>) {
     try {
+      // Remove undefined values to prevent Firebase errors
+      const cleanData = Object.fromEntries(
+        Object.entries(clientData).filter(([_, v]) => v !== undefined)
+      );
+      
       const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, clientData);
+      await updateDoc(docRef, cleanData);
       return true;
     } catch (error) {
       console.error("Erro ao atualizar cliente:", error);
