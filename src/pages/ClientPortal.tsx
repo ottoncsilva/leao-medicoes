@@ -97,6 +97,17 @@ export default function ClientPortal() {
       return;
     }
 
+    // Verificar se é fim de semana e se está configurado para não atender
+    const dayOfWeek = slotInfo.start.getDay();
+    if (dayOfWeek === 0 && !settings.workOnSundays) {
+      alert("Não atendemos aos domingos. Por favor, escolha outro dia.");
+      return;
+    }
+    if (dayOfWeek === 6 && !settings.workOnSaturdays) {
+      alert("Não atendemos aos sábados. Por favor, escolha outro dia.");
+      return;
+    }
+
     // Verificar se é feriado
     const isHoliday = checkIsHoliday(slotInfo.start);
     if (isHoliday) {

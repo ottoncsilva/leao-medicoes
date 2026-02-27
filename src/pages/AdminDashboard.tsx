@@ -70,7 +70,11 @@ export default function AdminDashboard() {
     notifyClientApproved: true,
     notifyClientRejected: true,
     notifyClientReschedule: true,
-    customHolidays: [] as Holiday[]
+    customHolidays: [] as Holiday[],
+    workOnSaturdays: false,
+    workOnSundays: false,
+    workStartTime: '08:00',
+    workEndTime: '18:00'
   });
 
   const [newHoliday, setNewHoliday] = useState({ date: '', name: '', type: 'fixed' as 'fixed' | 'specific' });
@@ -105,7 +109,11 @@ export default function AdminDashboard() {
         notifyClientApproved: fetchedSettings.notifyClientApproved ?? true,
         notifyClientRejected: fetchedSettings.notifyClientRejected ?? true,
         notifyClientReschedule: fetchedSettings.notifyClientReschedule ?? true,
-        customHolidays: fetchedSettings.customHolidays || []
+        customHolidays: fetchedSettings.customHolidays || [],
+        workOnSaturdays: fetchedSettings.workOnSaturdays ?? false,
+        workOnSundays: fetchedSettings.workOnSundays ?? false,
+        workStartTime: fetchedSettings.workStartTime || '08:00',
+        workEndTime: fetchedSettings.workEndTime || '18:00'
       });
       setBlockedTimes(fetchedBlocked);
       setBillingStatuses(fetchedBilling);
@@ -183,7 +191,11 @@ export default function AdminDashboard() {
         notifyClientApproved: settingsForm.notifyClientApproved,
         notifyClientRejected: settingsForm.notifyClientRejected,
         notifyClientReschedule: settingsForm.notifyClientReschedule,
-        customHolidays: settingsForm.customHolidays
+        customHolidays: settingsForm.customHolidays,
+        workOnSaturdays: settingsForm.workOnSaturdays,
+        workOnSundays: settingsForm.workOnSundays,
+        workStartTime: settingsForm.workStartTime,
+        workEndTime: settingsForm.workEndTime
       });
       alert("Configurações salvas com sucesso!");
       fetchData();
@@ -1229,7 +1241,61 @@ export default function AdminDashboard() {
                   {/* Seção: Feriados */}
                   {activeSettingsTab === 'feriados' && (
                     <div>
-                      <h4 className="text-sm font-bold text-stone-900 mb-4 uppercase tracking-wider">Feriados e Dias Indisponíveis</h4>
+                      <h4 className="text-sm font-bold text-stone-900 mb-4 uppercase tracking-wider">Horário de Funcionamento e Dias Úteis</h4>
+                      
+                      <div className="bg-white rounded-xl border border-stone-200 p-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h5 className="text-sm font-semibold text-stone-900 mb-3">Dias de Atendimento</h5>
+                            <div className="space-y-3">
+                              <label className="flex items-center space-x-3 cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  checked={settingsForm.workOnSaturdays}
+                                  onChange={e => setSettingsForm({ ...settingsForm, workOnSaturdays: e.target.checked })}
+                                  className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-900"
+                                />
+                                <span className="text-sm text-stone-700">Atender aos Sábados</span>
+                              </label>
+                              <label className="flex items-center space-x-3 cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  checked={settingsForm.workOnSundays}
+                                  onChange={e => setSettingsForm({ ...settingsForm, workOnSundays: e.target.checked })}
+                                  className="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-stone-900"
+                                />
+                                <span className="text-sm text-stone-700">Atender aos Domingos</span>
+                              </label>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h5 className="text-sm font-semibold text-stone-900 mb-3">Horário da Agenda</h5>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-medium text-stone-500 mb-1">Abertura</label>
+                                <input 
+                                  type="time" 
+                                  value={settingsForm.workStartTime}
+                                  onChange={e => setSettingsForm({ ...settingsForm, workStartTime: e.target.value })}
+                                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-stone-900 focus:border-stone-900 sm:text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-stone-500 mb-1">Fechamento</label>
+                                <input 
+                                  type="time" 
+                                  value={settingsForm.workEndTime}
+                                  onChange={e => setSettingsForm({ ...settingsForm, workEndTime: e.target.value })}
+                                  className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-stone-900 focus:border-stone-900 sm:text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-stone-900 mb-4 uppercase tracking-wider mt-8">Feriados e Dias Indisponíveis</h4>
                       
                       <div className="bg-stone-50 rounded-xl border border-stone-200 p-4 mb-6">
                         <h5 className="text-sm font-semibold text-stone-900 mb-3">Feriados Fixos (Obrigatórios)</h5>

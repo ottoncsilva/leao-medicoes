@@ -19,6 +19,10 @@ export interface GlobalSettings {
   notifyClientRejected?: boolean;
   notifyClientReschedule?: boolean;
   customHolidays?: Holiday[];
+  workOnSaturdays?: boolean;
+  workOnSundays?: boolean;
+  workStartTime?: string;
+  workEndTime?: string;
 }
 
 export const FIXED_HOLIDAYS = [
@@ -42,7 +46,14 @@ export const settingsService = {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as GlobalSettings;
-        return { ...data, customHolidays: data.customHolidays || [] };
+        return { 
+          ...data, 
+          customHolidays: data.customHolidays || [],
+          workOnSaturdays: data.workOnSaturdays ?? false,
+          workOnSundays: data.workOnSundays ?? false,
+          workStartTime: data.workStartTime || '08:00',
+          workEndTime: data.workEndTime || '18:00'
+        };
       }
       return { 
         defaultKmPrice: 2.5,
@@ -50,11 +61,22 @@ export const settingsService = {
         notifyClientApproved: true,
         notifyClientRejected: true,
         notifyClientReschedule: true,
-        customHolidays: []
+        customHolidays: [],
+        workOnSaturdays: false,
+        workOnSundays: false,
+        workStartTime: '08:00',
+        workEndTime: '18:00'
       }; // Valor padrão caso não exista
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
-      return { defaultKmPrice: 2.5, customHolidays: [] };
+      return { 
+        defaultKmPrice: 2.5, 
+        customHolidays: [],
+        workOnSaturdays: false,
+        workOnSundays: false,
+        workStartTime: '08:00',
+        workEndTime: '18:00'
+      };
     }
   },
 
