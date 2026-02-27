@@ -26,9 +26,9 @@ export const clientService = {
   // Criar um novo cliente
   async createClient(clientData: Omit<Client, 'id' | 'createdAt'>) {
     try {
-      // Remove undefined values to prevent Firebase errors
+      // Remove undefined and empty string values to prevent Firebase errors
       const cleanData = Object.fromEntries(
-        Object.entries(clientData).filter(([_, v]) => v !== undefined)
+        Object.entries(clientData).filter(([_, v]) => v !== undefined && v !== '')
       );
       
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
@@ -59,9 +59,9 @@ export const clientService = {
   // Atualizar cliente existente
   async updateClient(id: string, clientData: Partial<Client>) {
     try {
-      // Remove undefined values to prevent Firebase errors
+      // Remove undefined and empty string values to prevent Firebase errors
       const cleanData = Object.fromEntries(
-        Object.entries(clientData).filter(([_, v]) => v !== undefined)
+        Object.entries(clientData).filter(([_, v]) => v !== undefined && v !== '')
       );
       
       const docRef = doc(db, COLLECTION_NAME, id);
