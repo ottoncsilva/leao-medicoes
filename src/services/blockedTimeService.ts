@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export interface BlockedTime {
@@ -30,6 +30,16 @@ export const blockedTimeService = {
       return { id: docRef.id, ...data };
     } catch (error) {
       console.error("Erro ao bloquear horário:", error);
+      throw error;
+    }
+  },
+
+  async updateBlockedTime(id: string, data: Partial<Pick<BlockedTime, 'title' | 'start' | 'end'>>) {
+    try {
+      await updateDoc(doc(db, COLLECTION_NAME, id), data as any);
+      return true;
+    } catch (error) {
+      console.error("Erro ao atualizar bloqueio:", error);
       throw error;
     }
   },

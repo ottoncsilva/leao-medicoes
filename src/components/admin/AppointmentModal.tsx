@@ -1,0 +1,303 @@
+import { useState, useEffect } from 'react';
+import { X, MapPin, User, Phone, Home, Building2, Loader2, Clock, Layers } from 'lucide-react';
+import { requestService, MeasurementRequest } from '../../services/requestService';
+import { blockedTimeService, BlockedTime } from '../../services/blockedTimeService';
+import { Client } from '../../services/clientService';
+import { GlobalSettings } from '../../services/settingsService';
+import { addMinutes, format } from 'date-fns';
+import { toast } from 'sonner';
+
+interface Props {
+     initialDate?: string;
+     initialTime?: string;
+     clients: Client[];
+     requests: MeasurementRequest[];
+     blockedTimes: BlockedTime[];
+     settings: GlobalSettings;
+     onClose: () => void;
+     onSuccess: () => void;
+}
+
+interface AddressForm {
+     zipCode: string;
+     street: string;
+     number: string;
+     complement: string;
+     neighborhood: string;
+     city: string;
+     state: string;
+     condominiumName: string;
+     contactName: string;
+     contactPhone: string;
+}
+
+export default function AppointmentModal({
+     initialDate = '',
+     initialTime = '',
+     clients,
+     requests,
+     blockedTimes,
+     settings,
+     onClose,
+     onSuccess,
+}: Props) {
+     const [clientId, setClientId] = useState('');
+     const [projectName, setProjectName] = useState('');
+     const [environmentsCount, setEnvironmentsCount] = useState(1);
+     const [estimatedMinutes, setEstimatedMinutes] = useState(60);
+     const [date, setDate] = useState(initialDate);
+     const [time, setTime] = useState(initialTime);
+     const [isLoadingCep, setIsLoadingCep] = useState(false);
+     const [isSubmitting, setIsSubmitting] = useState(false);
+     const [conflictError, setConflictError] = useState('');
+
+     const [address, setAddress] = useState<AddressForm>({
+          zipCode: '', street: '', number: '', complement: '',
+          neighborhood: '', city: '', state: '', condominiumName: '',
+          contactName: '', contactPhone: ''
+     });
+
+     // Auto-calc estimated time based on environments (30 min each), but allow manual override
+     const suggestedMinutes = environmentsCount * 30;
+
+     useEffect(() => {
+          setEstimatedMinutes(environmentsCount * 30);
+     }, [environmentsCount]);
+
+     // Conflito check reativo
+     useEffect(() => {
+          if (!date || !time) { setConflictError(''); return; }
+          const start = new Date(`${date}T${time}:00`);
+          const end = addMinutes(start, estimatedMinutes);
+          const hasConflict = [...requests, ...blockedTimes].some(event => {
+               let eventStart: Date, eventEnd: Date;
+               if ('requestedDate' in event) {
+                    if (event.status === 'rejected') return false;
+                    eventStart = new Date(`${event.requestedDate}T${event.requestedTime}:00`);
+                    eventEnd = addMinutes(eventStart, event.estimatedMinutes);
+               } else {
+                    eventStart = new Date(event.start);
+                    eventEnd = new Date(event.end);
+               }
+               return start < eventEnd && end > eventStart;
+          });
+          setConflictError(hasConflict ? 'Conflito de horário! Já existe uma medição ou bloqueio neste período.' : '');
+     }, [date, time, estimatedMinutes, requests, blockedTimes]);
+
+     const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+          const cep = e.target.value.replace(/\D/g, '');
+          setAddress(prev => ({ ...prev, zipCode: e.target.value }));
+          if (cep.length === 8) {
+               setIsLoadingCep(true);
+               try {
+                    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const data = await response.json();
+                    if (!data.erro) {
+                         setAddress(prev => ({
+                              ...prev,
+                              street: data.logradouro,
+                              neighborhood: data.bairro,
+                              city: data.localidade,
+                              state: data.uf,
+                         }));
+                    } else {
+                         toast.error('CEP não encontrado.');
+                    }
+               } catch {
+                    toast.error('Erro ao buscar CEP. Verifique sua conexão.');
+               } finally {
+                    setIsLoadingCep(false);
+               }
+          }
+     };
+
+     const handleSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          if (conflictError) {
+               toast.error(conflictError);
+               return;
+          }
+          const client = clients.find(c => c.id === clientId);
+          if (!client || !client.id) return;
+
+          const fullAddress = `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}, ${address.neighborhood}, ${address.city} - ${address.state}, CEP: ${address.zipCode}`;
+
+          setIsSubmitting(true);
+          try {
+               await requestService.createRequest({
+                    clientId: client.id,
+                    clientName: client.name,
+                    projectName,
+                    address: fullAddress,
+                    zipCode: address.zipCode,
+                    street: address.street,
+                    number: address.number,
+                    complement: address.complement,
+                    neighborhood: address.neighborhood,
+                    city: address.city,
+                    state: address.state,
+                    condominiumName: address.condominiumName,
+                    contactName: address.contactName,
+                    contactPhone: address.contactPhone,
+                    environmentsCount,
+                    estimatedMinutes,
+                    requestedDate: date,
+                    requestedTime: time,
+               });
+               toast.success(`Medição agendada para ${format(new Date(`${date}T${time}:00`), 'dd/MM')} às ${time}!`);
+               onClose();
+               onSuccess();
+          } catch {
+               toast.error('Erro ao agendar medição. Tente novamente.');
+          } finally {
+               setIsSubmitting(false);
+          }
+     };
+
+     const inputClass = "w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm";
+     const labelClass = "block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1";
+
+     return (
+          <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col animate-in zoom-in-95 duration-200">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-stone-200 shrink-0">
+                         <div>
+                              <h3 className="text-xl font-bold text-stone-900">Agendar Nova Medição</h3>
+                              <p className="text-sm text-stone-500 mt-0.5">Preencha os dados do agendamento</p>
+                         </div>
+                         <button onClick={onClose} className="p-2 rounded-xl hover:bg-stone-100 text-stone-500 transition-colors">
+                              <X className="w-5 h-5" />
+                         </button>
+                    </div>
+
+                    {/* Body */}
+                    <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+                         <div className="p-6 space-y-6">
+
+                              {/* Loja e Projeto */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div>
+                                        <label className={labelClass}>Cliente (Loja) *</label>
+                                        <select required value={clientId} onChange={e => setClientId(e.target.value)} className={inputClass}>
+                                             <option value="">Selecione...</option>
+                                             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                   </div>
+                                   <div>
+                                        <label className={labelClass}>Nome do Projeto</label>
+                                        <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className={inputClass} placeholder="Ex: Apto 302 Torre A" />
+                                   </div>
+                              </div>
+
+                              {/* Data, Hora e Ambientes */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                   <div>
+                                        <label className={labelClass}>Data *</label>
+                                        <input type="date" required value={date} onChange={e => setDate(e.target.value)} className={inputClass} />
+                                   </div>
+                                   <div>
+                                        <label className={labelClass}>Hora *</label>
+                                        <input type="time" required value={time} onChange={e => setTime(e.target.value)} className={inputClass} />
+                                   </div>
+                                   <div>
+                                        <label className={labelClass}><Layers className="w-3 h-3 inline mr-1" />Ambientes *</label>
+                                        <input type="number" required min="1" value={environmentsCount} onChange={e => setEnvironmentsCount(Number(e.target.value))} className={inputClass} />
+                                   </div>
+                                   <div>
+                                        <label className={labelClass}><Clock className="w-3 h-3 inline mr-1" />Tempo Est. (min)</label>
+                                        <input type="number" required min="15" step="15" value={estimatedMinutes} onChange={e => setEstimatedMinutes(Number(e.target.value))} className={inputClass} />
+                                        {estimatedMinutes !== suggestedMinutes && (
+                                             <p className="text-xs text-amber-600 mt-1">Sugerido: {suggestedMinutes} min</p>
+                                        )}
+                                   </div>
+                              </div>
+
+                              {/* Conflito warning */}
+                              {conflictError && (
+                                   <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 font-medium">
+                                        ⚠️ {conflictError}
+                                   </div>
+                              )}
+
+                              {/* Endereço */}
+                              <div>
+                                   <div className="flex items-center space-x-2 mb-4">
+                                        <MapPin className="w-4 h-4 text-stone-500" />
+                                        <h4 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Endereço da Obra</h4>
+                                   </div>
+                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="relative">
+                                             <label className={labelClass}>CEP *</label>
+                                             <input type="text" value={address.zipCode} onChange={handleCepChange} className={inputClass} placeholder="00000-000" maxLength={9} />
+                                             {isLoadingCep && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-8 text-stone-400" />}
+                                        </div>
+                                        <div className="md:col-span-2">
+                                             <label className={labelClass}>Rua / Logradouro</label>
+                                             <input type="text" value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} className={inputClass} placeholder="Auto-preenchido pelo CEP" />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}>Número *</label>
+                                             <input type="text" required value={address.number} onChange={e => setAddress(p => ({ ...p, number: e.target.value }))} className={inputClass} placeholder="123" />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}>Complemento</label>
+                                             <input type="text" value={address.complement} onChange={e => setAddress(p => ({ ...p, complement: e.target.value }))} className={inputClass} placeholder="Apto, Bloco..." />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}>Bairro</label>
+                                             <input type="text" value={address.neighborhood} onChange={e => setAddress(p => ({ ...p, neighborhood: e.target.value }))} className={inputClass} />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}>Cidade</label>
+                                             <input type="text" value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} className={inputClass} />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}>UF</label>
+                                             <input type="text" maxLength={2} value={address.state} onChange={e => setAddress(p => ({ ...p, state: e.target.value.toUpperCase() }))} className={inputClass} placeholder="SP" />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}><Building2 className="w-3 h-3 inline mr-1" />Condomínio</label>
+                                             <input type="text" value={address.condominiumName} onChange={e => setAddress(p => ({ ...p, condominiumName: e.target.value }))} className={inputClass} placeholder="Nome do condomínio" />
+                                        </div>
+                                   </div>
+                              </div>
+
+                              {/* Contato */}
+                              <div>
+                                   <div className="flex items-center space-x-2 mb-4">
+                                        <User className="w-4 h-4 text-stone-500" />
+                                        <h4 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Contato no Local</h4>
+                                   </div>
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                             <label className={labelClass}><User className="w-3 h-3 inline mr-1" />Nome do Contato</label>
+                                             <input type="text" value={address.contactName} onChange={e => setAddress(p => ({ ...p, contactName: e.target.value }))} className={inputClass} placeholder="Nome da pessoa no local" />
+                                        </div>
+                                        <div>
+                                             <label className={labelClass}><Phone className="w-3 h-3 inline mr-1" />Telefone do Contato</label>
+                                             <input type="text" value={address.contactPhone} onChange={e => setAddress(p => ({ ...p, contactPhone: e.target.value }))} className={inputClass} placeholder="Ex: (11) 99999-9999" />
+                                        </div>
+                                   </div>
+                              </div>
+                         </div>
+                    </form>
+
+                    {/* Footer */}
+                    <div className="p-6 border-t border-stone-200 flex justify-end space-x-3 shrink-0 bg-stone-50 rounded-b-2xl">
+                         <button type="button" onClick={onClose} className="px-5 py-2.5 border border-stone-300 text-stone-700 rounded-xl hover:bg-stone-100 transition-colors text-sm font-medium">
+                              Cancelar
+                         </button>
+                         <button
+                              onClick={handleSubmit as any}
+                              disabled={isSubmitting || !!conflictError}
+                              className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                         >
+                              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                              {isSubmitting ? 'Agendando...' : 'Confirmar Agendamento'}
+                         </button>
+                    </div>
+               </div>
+          </div>
+     );
+}

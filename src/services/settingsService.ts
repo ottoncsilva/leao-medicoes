@@ -10,6 +10,7 @@ export interface Holiday {
 
 export interface GlobalSettings {
   defaultKmPrice: number;
+  minutesPerEnvironment?: number; // minutos por ambiente para calcular tempo estimado
   evolutionApiUrl?: string;
   evolutionInstance?: string;
   evolutionApiKey?: string;
@@ -46,8 +47,8 @@ export const settingsService = {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as GlobalSettings;
-        return { 
-          ...data, 
+        return {
+          ...data,
           customHolidays: data.customHolidays || [],
           workOnSaturdays: data.workOnSaturdays ?? false,
           workOnSundays: data.workOnSundays ?? false,
@@ -55,8 +56,9 @@ export const settingsService = {
           workEndTime: data.workEndTime || '18:00'
         };
       }
-      return { 
+      return {
         defaultKmPrice: 2.5,
+        minutesPerEnvironment: 30,
         notifyManagerNewRequest: true,
         notifyClientApproved: true,
         notifyClientRejected: true,
@@ -69,8 +71,8 @@ export const settingsService = {
       }; // Valor padrão caso não exista
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
-      return { 
-        defaultKmPrice: 2.5, 
+      return {
+        defaultKmPrice: 2.5,
         customHolidays: [],
         workOnSaturdays: false,
         workOnSundays: false,
