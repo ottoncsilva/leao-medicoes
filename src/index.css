@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "react-big-calendar/lib/css/react-big-calendar.css";
+
+/* Customizações para o calendário combinar com o tema */
+.rbc-calendar {
+  font-family: inherit;
+}
+.rbc-event {
+  background-color: #1c1917; /* stone-900 */
+  border-radius: 6px;
+}
+.rbc-today {
+  background-color: #f5f5f4; /* stone-100 */
+}
+.rbc-toolbar button {
+  border-radius: 8px;
+  color: #44403c;
+}
+.rbc-toolbar button.rbc-active {
+  background-color: #1c1917;
+  color: white;
+  border-color: #1c1917;
+}
