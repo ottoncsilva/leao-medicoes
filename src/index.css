@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @import "tailwindcss";
 @import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -128,4 +129,136 @@
       rgba(0, 0, 0, 0.03) 8px,
       rgba(0, 0, 0, 0.06) 8px,
       rgba(0, 0, 0, 0.06) 16px) !important;
+=======
+@import "tailwindcss";
+@import "react-big-calendar/lib/css/react-big-calendar.css";
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    min-height: 44px;
+  }
+}
+
+/* Customizações para o calendário combinar com tema Google Calendar/Tarefas */
+.rbc-calendar {
+  font-family: 'Inter', sans-serif;
+  border: none;
+}
+
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  border: 1px solid #e2e8f0;
+  /* slate-200 */
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.rbc-header {
+  padding: 12px 0;
+  font-weight: 600;
+  color: #475569;
+  /* slate-600 */
+  border-bottom: 1px solid #e2e8f0;
+  border-left: 1px solid #f1f5f9;
+}
+
+.rbc-time-header.rbc-overflowing {
+  border-right: none;
+}
+
+.rbc-time-content {
+  border-top: none;
+}
+
+.rbc-day-bg+.rbc-day-bg,
+.rbc-month-row+.rbc-month-row,
+.rbc-header+.rbc-header {
+  border-left: 1px solid #f1f5f9;
+  /* slate-100 */
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #f8fafc;
+  /* muito sutil */
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rbc-event {
+  background-color: #1e3a8a;
+  /* blue-900 */
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.rbc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  opacity: 1 !important;
+}
+
+.rbc-today {
+  background-color: #f8fafc;
+  /* slate-50 */
+}
+
+.rbc-current-time-indicator {
+  background-color: #2563eb;
+  /* blue-600 */
+}
+
+.rbc-toolbar {
+  margin-bottom: 24px !important;
+  font-family: inherit;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rbc-toolbar button {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s !important;
+  background-color: #ffffff !important;
+  padding: 6px 16px !important;
+  font-size: 0.875rem !important;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  background-color: #0f172a;
+  /* slate-900 */
+}
+
+/* Hachuras padronizadas para finais de semana e off-hours (se as classes ou estilos inline usarem) */
+.hatched-bg {
+  background-image: repeating-linear-gradient(135deg,
+      rgba(0, 0, 0, 0.03),
+      rgba(0, 0, 0, 0.03) 8px,
+      rgba(0, 0, 0, 0.06) 8px,
+      rgba(0, 0, 0, 0.06) 16px) !important;
+>>>>>>> 0e85a4bbb0746910d0bf74ab9d34173325ff70eb
 }
