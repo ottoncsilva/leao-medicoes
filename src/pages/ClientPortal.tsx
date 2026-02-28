@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar as CalendarIcon, MapPin, Clock, ChevronRight, CheckCircle2, ArrowLeft, LogOut, FileText, LayoutDashboard, Plus, Loader2, Building2, User, Phone } from 'lucide-react';
 import { format, parse, startOfWeek, getDay, addMinutes, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { requestService, MeasurementRequest } from '../services/requestService';
+import { requestService, MeasurementRequest, Environment } from '../services/requestService';
 import { blockedTimeService, BlockedTime } from '../services/blockedTimeService';
 import { billingService, BillingStatus } from '../services/billingService';
 import { settingsService, GlobalSettings, FIXED_HOLIDAYS } from '../services/settingsService';
@@ -36,7 +36,8 @@ export default function ClientPortal() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('new_request');
   const [step, setStep] = useState(1);
-  const [environments, setEnvironments] = useState(1);
+  const [environmentsList, setEnvironmentsList] = useState<Environment[]>([]);
+  const [envInput, setEnvInput] = useState('');
   const [projectName, setProjectName] = useState('');
   const [address, setAddress] = useState<AddressForm>({
     zipCode: '', street: '', number: '', complement: '',
@@ -60,7 +61,7 @@ export default function ClientPortal() {
   const [billingMonth, setBillingMonth] = useState(format(new Date(), 'yyyy-MM'));
 
   const minutesPerEnv = settings.minutesPerEnvironment ?? 30;
-  const estimatedTime = environments * minutesPerEnv;
+  const estimatedTime = Math.max(1, environmentsList.length) * minutesPerEnv;
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -154,7 +155,7 @@ export default function ClientPortal() {
         city: address.city, state: address.state,
         condominiumName: address.condominiumName,
         contactName: address.contactName, contactPhone: address.contactPhone,
-        environmentsCount: environments, estimatedMinutes: estimatedTime,
+        environmentsCount: environmentsList.length, environments: environmentsList, estimatedMinutes: estimatedTime,
         requestedDate: format(selectedSlot.start, 'yyyy-MM-dd'),
         requestedTime: format(selectedSlot.start, 'HH:mm'),
       };
@@ -169,7 +170,7 @@ export default function ClientPortal() {
         await requestService.createRequest({ clientId: clientData.id, clientName: clientData.name, ...sharedData });
         if (settings.notifyManagerNewRequest && settings.managerPhone) {
           import('../services/whatsappService').then(({ whatsappService }) => {
-            whatsappService.sendMessage(settings.managerPhone!, `🔔 *Nova Solicitação de Medição!*\n\nLoja: ${clientData.name}\nProjeto: ${projectName}\nData: ${format(selectedSlot.start, 'dd/MM/yyyy')} às ${format(selectedSlot.start, 'HH:mm')}\nAmbientes: ${environments}\nEndereço: ${fullAddress}\n\nAcesse o painel para aprovar.`, settings);
+            whatsappService.sendMessage(settings.managerPhone!, `🔔 *Nova Solicitação de Medição!*\n\nLoja: ${clientData.name}\nProjeto: ${projectName}\nData: ${format(selectedSlot.start, 'dd/MM/yyyy')} às ${format(selectedSlot.start, 'HH:mm')}\nAmbientes: ${environmentsList.length}\nEndereço: ${fullAddress}\n\nAcesse o painel para aprovar.`, settings);
           });
         }
         setStep(3);
@@ -235,7 +236,7 @@ export default function ClientPortal() {
       // Abre edição pré-preenchida
       setEditingRequest(req);
       setProjectName(req.projectName || '');
-      setEnvironments(req.environmentsCount);
+      setEnvironmentsList(req.environments || Array.from({ length: req.environmentsCount || 1 }).map((_, i) => ({ id: `legacy-${i}`, name: `Ambiente ${i + 1}`, isMeasured: true })));
       setAddress({
         zipCode: req.zipCode || '', street: req.street || '', number: req.number || '',
         complement: req.complement || '', neighborhood: req.neighborhood || '',
@@ -343,7 +344,7 @@ export default function ClientPortal() {
               </div>
               <div className="flex items-center gap-3">
                 {editingRequest && (
-                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironments(1); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-slate-500 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironmentsList([]); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-slate-500 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors">
                     Cancelar Edição
                   </button>
                 )}
@@ -366,14 +367,59 @@ export default function ClientPortal() {
                       <label className={labelClass}>Nome do Projeto</label>
                       <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className={inputClass} placeholder="Ex: Apto 302 Torre A" />
                     </div>
-                    <div>
-                      <label className={labelClass}>Quantidade de Ambientes *</label>
-                      <div className="flex items-center space-x-3">
-                        <button type="button" onClick={() => setEnvironments(Math.max(1, environments - 1))} className="w-10 h-10 rounded-xl border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">−</button>
-                        <input type="number" value={environments} onChange={e => setEnvironments(parseInt(e.target.value) || 1)} className="flex-1 px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm text-center font-medium" min="1" />
-                        <button type="button" onClick={() => setEnvironments(environments + 1)} className="w-10 h-10 rounded-xl border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">+</button>
+                    <div className="md:col-span-2">
+                      <label className={labelClass}>Ambientes a Medir *</label>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <input
+                          type="text"
+                          value={envInput}
+                          onChange={e => setEnvInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (envInput.trim()) {
+                                setEnvironmentsList([...environmentsList, { id: crypto.randomUUID(), name: envInput.trim(), isMeasured: true }]);
+                                setEnvInput('');
+                              }
+                            }
+                          }}
+                          className={inputClass}
+                          placeholder="Ex: Cozinha, Suíte Master, etc."
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (envInput.trim()) {
+                              setEnvironmentsList([...environmentsList, { id: crypto.randomUUID(), name: envInput.trim(), isMeasured: true }]);
+                              setEnvInput('');
+                            }
+                          }}
+                          className="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+                        >
+                          Adicionar
+                        </button>
                       </div>
 
+                      {environmentsList.length > 0 ? (
+                        <ul className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50 max-h-48 overflow-y-auto">
+                          {environmentsList.map((env) => (
+                            <li key={env.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-sm text-slate-700">
+                              <span>{env.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => setEnvironmentsList(environmentsList.filter(e => e.id !== env.id))}
+                                className="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors"
+                              >
+                                Remover
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                          Adicione os ambientes (pelo menos 1) para calcularmos o tempo estimado.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -474,7 +520,7 @@ export default function ClientPortal() {
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Solicitação Enviada!</h2>
                 <p className="text-slate-600 mb-6">Sua solicitação para <strong>{format(selectedSlot!.start, 'dd/MM/yyyy')}</strong> às <strong>{format(selectedSlot!.start, 'HH:mm')}</strong> foi enviada para aprovação.</p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironments(1); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="w-full sm:w-auto px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">Fazer Outro Agendamento</button>
+                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironmentsList([]); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="w-full sm:w-auto px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">Fazer Outro Agendamento</button>
                   <button onClick={() => { setActiveTab('history'); setStep(1); }} className="w-full sm:w-auto px-6 py-3 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors font-medium">Ver Minhas Medições</button>
                 </div>
               </div>

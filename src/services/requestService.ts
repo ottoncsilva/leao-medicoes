@@ -3,6 +3,13 @@ import { db } from '../lib/firebase';
 
 export type RequestStatus = 'pending' | 'confirmed' | 'rejected' | 'completed' | 'reschedule_requested';
 
+export interface Environment {
+  id: string;
+  name: string;
+  isMeasured: boolean;
+  observation?: string;
+}
+
 export interface MeasurementRequest {
   id?: string;
   clientId: string; // ID da loja que solicitou
@@ -19,7 +26,8 @@ export interface MeasurementRequest {
   condominiumName?: string;
   contactName?: string;
   contactPhone?: string;
-  environmentsCount: number;
+  environmentsCount: number; // Mantedo para retrocompatibilidade
+  environments?: Environment[]; // Lista de ambientes qualitativa
   estimatedMinutes: number;
   requestedDate: string; // Formato YYYY-MM-DD
   requestedTime: string; // Formato HH:MM
@@ -51,11 +59,11 @@ export const requestService = {
   async getRequests(status?: RequestStatus) {
     try {
       let q: any = collection(db, COLLECTION_NAME);
-      
+
       if (status) {
         q = query(q, where("status", "==", status));
       }
-      
+
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
         const data = doc.data() as any;

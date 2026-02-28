@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, MapPin, User, Phone, Building2, Loader2, Clock, Layers, Pencil } from 'lucide-react';
-import { requestService, MeasurementRequest } from '../../services/requestService';
+import { requestService, MeasurementRequest, Environment } from '../../services/requestService';
 import { blockedTimeService, BlockedTime } from '../../services/blockedTimeService';
 import { Client } from '../../services/clientService';
 import { GlobalSettings } from '../../services/settingsService';
@@ -47,7 +47,8 @@ export default function AppointmentModal({
 
      const [clientId, setClientId] = useState(editRequest?.clientId || '');
      const [projectName, setProjectName] = useState(editRequest?.projectName || '');
-     const [environmentsCount, setEnvironmentsCount] = useState(editRequest?.environmentsCount || 1);
+     const [environmentsList, setEnvironmentsList] = useState<Environment[]>(editRequest?.environments || Array.from({ length: editRequest?.environmentsCount || 1 }).map((_, i) => ({ id: `legacy-${i}`, name: `Ambiente ${i + 1}`, isMeasured: true })));
+     const [envInput, setEnvInput] = useState('');
      const [estimatedMinutes, setEstimatedMinutes] = useState(editRequest?.estimatedMinutes || 60);
      const [date, setDate] = useState(editRequest?.requestedDate || initialDate);
      const [time, setTime] = useState(editRequest?.requestedTime || initialTime);
@@ -68,11 +69,11 @@ export default function AppointmentModal({
           contactPhone: editRequest?.contactPhone || '',
      });
 
-     const suggestedMinutes = environmentsCount * 30;
+     const suggestedMinutes = Math.max(1, environmentsList.length) * 30;
 
      useEffect(() => {
-          if (!isEditMode) setEstimatedMinutes(environmentsCount * 30);
-     }, [environmentsCount, isEditMode]);
+          if (!isEditMode) setEstimatedMinutes(Math.max(1, environmentsList.length) * 30);
+     }, [environmentsList.length, isEditMode]);
 
      // Conflito check reativo (ignora o próprio evento em modo edição)
      useEffect(() => {
@@ -133,7 +134,8 @@ export default function AppointmentModal({
                          condominiumName: address.condominiumName,
                          contactName: address.contactName,
                          contactPhone: address.contactPhone,
-                         environmentsCount,
+                         environmentsCount: environmentsList.length,
+                         environments: environmentsList,
                          estimatedMinutes,
                          requestedDate: date,
                          requestedTime: time,
@@ -158,7 +160,8 @@ export default function AppointmentModal({
                          condominiumName: address.condominiumName,
                          contactName: address.contactName,
                          contactPhone: address.contactPhone,
-                         environmentsCount,
+                         environmentsCount: environmentsList.length,
+                         environments: environmentsList,
                          estimatedMinutes,
                          requestedDate: date,
                          requestedTime: time,
@@ -232,9 +235,59 @@ export default function AppointmentModal({
                                         <label className={labelClass}>Hora *</label>
                                         <input type="time" required value={time} onChange={e => setTime(e.target.value)} className={inputClass} />
                                    </div>
-                                   <div>
-                                        <label className={labelClass}><Layers className="w-3 h-3 inline mr-1" />Ambientes *</label>
-                                        <input type="number" required min="1" value={environmentsCount} onChange={e => setEnvironmentsCount(Number(e.target.value))} className={inputClass} />
+                                   <div className="md:col-span-2">
+                                        <label className={labelClass}><Layers className="w-3 h-3 inline mr-1" />Ambientes a Medir *</label>
+                                        <div className="flex items-center space-x-2 mb-3">
+                                             <input
+                                                  type="text"
+                                                  value={envInput}
+                                                  onChange={e => setEnvInput(e.target.value)}
+                                                  onKeyDown={e => {
+                                                       if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            if (envInput.trim()) {
+                                                                 setEnvironmentsList([...environmentsList, { id: crypto.randomUUID(), name: envInput.trim(), isMeasured: true }]);
+                                                                 setEnvInput('');
+                                                            }
+                                                       }
+                                                  }}
+                                                  className={inputClass}
+                                                  placeholder="Ex: Cozinha, Suíte Master, etc."
+                                             />
+                                             <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                       if (envInput.trim()) {
+                                                            setEnvironmentsList([...environmentsList, { id: crypto.randomUUID(), name: envInput.trim(), isMeasured: true }]);
+                                                            setEnvInput('');
+                                                       }
+                                                  }}
+                                                  className="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors text-sm"
+                                             >
+                                                  Adicionar
+                                             </button>
+                                        </div>
+
+                                        {environmentsList.length > 0 ? (
+                                             <ul className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50 max-h-48 overflow-y-auto">
+                                                  {environmentsList.map((env) => (
+                                                       <li key={env.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm text-sm text-slate-700">
+                                                            <span>{env.name}</span>
+                                                            <button
+                                                                 type="button"
+                                                                 onClick={() => setEnvironmentsList(environmentsList.filter(e => e.id !== env.id))}
+                                                                 className="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1 rounded bg-red-50 hover:bg-red-100 transition-colors"
+                                                            >
+                                                                 Remover
+                                                            </button>
+                                                       </li>
+                                                  ))}
+                                             </ul>
+                                        ) : (
+                                             <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                                                  Adicione os ambientes (pelo menos 1) para calcularmos o tempo estimado.
+                                             </p>
+                                        )}
                                    </div>
                                    <div>
                                         <label className={labelClass}><Clock className="w-3 h-3 inline mr-1" />Tempo Est. (min)</label>

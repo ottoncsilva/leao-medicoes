@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users, CheckSquare, Clock } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { db, auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -18,18 +18,22 @@ import AgendaTab from '../components/admin/AgendaTab';
 import RequestsTab from '../components/admin/RequestsTab';
 import ClientsTab from '../components/admin/ClientsTab';
 import BillingTab from '../components/admin/BillingTab';
+import CompleteMeasurementsTab from '../components/admin/CompleteMeasurementsTab';
+import FutureMeasurementsTab from '../components/admin/FutureMeasurementsTab';
 import SettingsTab from '../components/admin/SettingsTab';
 import CompleteRequestModal from '../components/admin/CompleteRequestModal';
 import RescheduleModal from '../components/admin/RescheduleModal';
 
-type Tab = 'dashboard' | 'agenda' | 'requests' | 'clients' | 'billing' | 'settings';
+type Tab = 'dashboard' | 'agenda' | 'requests' | 'complete' | 'clients' | 'billing' | 'future' | 'settings';
 
 const NAV_ITEMS: { key: Tab; label: string; Icon: any }[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { key: 'agenda', label: 'Agenda Geral', Icon: CalendarDays },
   { key: 'requests', label: 'Solicitações', Icon: ClipboardList },
+  { key: 'complete', label: 'Completar Visita', Icon: CheckSquare },
   { key: 'clients', label: 'Clientes (Lojas)', Icon: Users },
   { key: 'billing', label: 'Faturamento', Icon: DollarSign },
+  { key: 'future', label: 'Medidas Futuras', Icon: Clock },
   { key: 'settings', label: 'Configurações', Icon: SettingsIcon },
 ];
 
@@ -37,8 +41,10 @@ const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
   dashboard: { title: 'Visão Geral', sub: 'Acompanhe o desempenho e faturamento dos últimos 6 meses.' },
   agenda: { title: 'Agenda Geral', sub: 'Clique em um horário para agendar uma medição. Arraste para reorganizar.' },
   requests: { title: 'Solicitações de Medição', sub: 'Aprove, peça alteração ou marque medições como realizadas.' },
+  complete: { title: 'Completar Medições', sub: 'Confirme os ambientes medidos presencialmente na visita.' },
   clients: { title: 'Gestão de Clientes', sub: 'Cadastre e edite lojas e defina regras de cobrança.' },
   billing: { title: 'Faturamento Mensal', sub: 'Consulte o faturamento por mês e marque como pago.' },
+  future: { title: 'Medidas Futuras (Remarketing)', sub: 'Histórico de ambientes não medidos para prospecção.' },
   settings: { title: 'Configurações do Sistema', sub: 'Defina valores globais e regras gerais do sistema.' },
 };
 
@@ -216,6 +222,9 @@ export default function AdminDashboard() {
               />
             )}
 
+            {/* Completar Visitas */}
+            {activeTab === 'complete' && <CompleteMeasurementsTab requests={requests} clients={clients} onUpdate={fetchData} />}
+
             {/* Clientes */}
             {activeTab === 'clients' && (
               <ClientsTab clients={clients} settings={settings} onRefresh={fetchData} />
@@ -233,6 +242,9 @@ export default function AdminDashboard() {
                 onRefresh={fetchData}
               />
             )}
+
+            {/* Medidas Futuras */}
+            {activeTab === 'future' && <FutureMeasurementsTab requests={requests} />}
 
             {/* Configurações */}
             {activeTab === 'settings' && (
