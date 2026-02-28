@@ -12,8 +12,9 @@ import { Calendar, dateFnsLocalizer, View, Views } from 'react-big-calendar';
 import { auth, db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { Toaster } from 'sonner';
-import { toast } from 'sonner';
+import { pdf } from '@react-pdf/renderer';
+import { Toaster, toast } from 'sonner';
+import { ClientBillingPDF } from '../components/admin/ClientBillingModal';
 
 const locales = { 'pt-BR': ptBR };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
@@ -242,7 +243,8 @@ export default function ClientPortal() {
         condominiumName: req.condominiumName || '',
         contactName: req.contactName || '', contactPhone: req.contactPhone || '',
       });
-      setStep(1);
+      setStep(2); // Vai direto para os detalhes, visto que o slot já está definido logicamente
+      setSelectedSlot({ start: new Date(`${req.requestedDate}T${req.requestedTime}:00`), end: addMinutes(new Date(`${req.requestedDate}T${req.requestedTime}:00`), req.estimatedMinutes) });
       setActiveTab('new_request');
     } else {
       toast.info('Este agendamento já foi confirmado e não pode ser editado pelo portal. Entre em contato pelo WhatsApp se precisar de alteração.');
@@ -271,27 +273,62 @@ export default function ClientPortal() {
   const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm";
   const labelClass = "block text-sm font-medium text-slate-700 mb-2";
 
+  const downloadFaturaMensal = async () => {
+    if (!clientData) return;
+    try {
+      const blob = await pdf(<ClientBillingPDF client={clientData} requests={myCompletedRequests} month={format(selectedMonthStart, 'MMMM/yyyy', { locale: ptBR })} totalValue={totalValue} totalKm={totalKm} totalEnvs={totalEnvs} settings={settings} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `LeaoMedicoes_Fatura_${clientData.name.replace(/\s+/g, '_')}_${billingMonth}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Erro ao gerar a fatura. Tentar novamente mais tarde.');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row relative">
       <Toaster position="top-right" richColors />
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      {/* Sidebar Desktop */}
+      <aside className="hidden md:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
         <div className="p-6 border-b border-slate-200">
           <h1 className="text-xl font-bold text-slate-900">Leão Medições</h1>
           <p className="text-xs text-slate-500 mt-1">Portal do Cliente</p>
           <div className="mt-4 inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-medium rounded-full">{clientData?.name}</div>
         </div>
-        <nav className="flex-1 p-4 space-y-2 flex md:flex-col overflow-x-auto md:overflow-visible">
-          <button onClick={() => { setActiveTab('new_request'); setStep(1); }} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'new_request' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><Plus className="w-5 h-5" /><span className="font-medium">Nova Medição</span></button>
-          <button onClick={() => setActiveTab('history')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'history' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><LayoutDashboard className="w-5 h-5" /><span className="font-medium">Minhas Medições</span></button>
-          <button onClick={() => setActiveTab('billing')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'billing' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><FileText className="w-5 h-5" /><span className="font-medium">Meu Faturamento</span></button>
+        <nav className="flex-1 p-4 space-y-2 flex flex-col">
+          <button onClick={() => { setActiveTab('new_request'); setStep(1); }} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 w-full ${activeTab === 'new_request' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><Plus className="w-5 h-5" /><span className="font-medium">Nova Medição</span></button>
+          <button onClick={() => setActiveTab('history')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 w-full ${activeTab === 'history' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><LayoutDashboard className="w-5 h-5" /><span className="font-medium">Minhas Medições</span></button>
+          <button onClick={() => setActiveTab('billing')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 w-full ${activeTab === 'billing' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><FileText className="w-5 h-5" /><span className="font-medium">Meu Faturamento</span></button>
         </nav>
         <div className="p-4 border-t border-slate-200">
           <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"><LogOut className="w-5 h-5" /><span className="font-medium">Sair</span></button>
         </div>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 overflow-auto">
+      {/* Bottom Navigation Mobile */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex items-center justify-around py-2 px-2 safe-area-pb">
+        <button onClick={() => { setActiveTab('new_request'); setStep(1); }} className={`flex flex-col items-center justify-center w-full py-2 ${activeTab === 'new_request' ? 'text-blue-950' : 'text-slate-500 hover:text-slate-900'}`}>
+          <Plus className="w-6 h-6 mb-1" />
+          <span className="text-[10px] font-medium">Nova</span>
+        </button>
+        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center justify-center w-full py-2 ${activeTab === 'history' ? 'text-blue-950' : 'text-slate-500 hover:text-slate-900'}`}>
+          <LayoutDashboard className="w-6 h-6 mb-1" />
+          <span className="text-[10px] font-medium">Medições</span>
+        </button>
+        <button onClick={() => setActiveTab('billing')} className={`flex flex-col items-center justify-center w-full py-2 ${activeTab === 'billing' ? 'text-blue-950' : 'text-slate-500 hover:text-slate-900'}`}>
+          <FileText className="w-6 h-6 mb-1" />
+          <span className="text-[10px] font-medium">Faturas</span>
+        </button>
+        <button onClick={handleLogout} className="flex flex-col items-center justify-center w-full py-2 text-red-500 hover:text-red-700">
+          <LogOut className="w-6 h-6 mb-1" />
+          <span className="text-[10px] font-medium">Sair</span>
+        </button>
+      </nav>
+
+      <main className="flex-1 p-4 md:p-8 overflow-auto pb-24 md:pb-8">
         {/* NOVA MEDIÇÃO */}
         {activeTab === 'new_request' && (
           <div className="max-w-4xl mx-auto">
@@ -311,15 +348,15 @@ export default function ClientPortal() {
                   </button>
                 )}
                 <div className="hidden md:flex items-center space-x-2 text-sm text-slate-500">
-                  <span className={step >= 1 ? 'text-slate-900 font-medium' : ''}>Detalhes</span>
+                  <span className={step >= 1 ? 'text-slate-900 font-medium' : ''}>Agenda</span>
                   <ChevronRight className="w-4 h-4" />
-                  <span className={step >= 2 ? 'text-slate-900 font-medium' : ''}>Agenda</span>
+                  <span className={step >= 2 ? 'text-slate-900 font-medium' : ''}>Detalhes</span>
                 </div>
               </div>
             </header>
 
-            {step === 1 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {step === 2 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
                   <h2 className="text-xl font-semibold text-slate-900">Detalhes do Serviço</h2>
 
@@ -369,18 +406,25 @@ export default function ClientPortal() {
                   </div>
                 </div>
 
-                <button onClick={() => setStep(2)} disabled={environments < 1} className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-950 hover:bg-blue-900 disabled:opacity-50 transition-colors">
-                  Ver Agenda e Escolher Horário <ChevronRight className="w-4 h-4 ml-2 inline" />
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4">
+                  <button onClick={() => setStep(1)} className="w-full sm:w-auto px-8 py-4 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium flex items-center justify-center">
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Voltar à Agenda
+                  </button>
+                  <button onClick={handleSchedule} disabled={isSubmitting || !selectedSlot} className="w-full sm:w-auto px-8 py-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-950 hover:bg-blue-900 flex justify-center items-center disabled:opacity-50 transition-colors">
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Enviando...</> : 'Confirmar e Enviar Solicitação'}
+                  </button>
+                </div>
               </div>
             )}
 
-            {step === 2 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {step === 1 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex items-center justify-between mb-6">
-                    <div><h2 className="text-xl font-semibold text-slate-900">Escolha o Horário</h2><p className="text-sm text-slate-500 mt-1">Clique em um espaço vazio para agendar ({estimatedTime} min).</p></div>
-                    <button onClick={() => setStep(1)} className="flex items-center text-sm text-slate-500 hover:text-slate-900 font-medium"><ArrowLeft className="w-4 h-4 mr-1" />Voltar</button>
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">1. Escolha o Horário</h2>
+                      <p className="text-sm text-slate-500 mt-1">Clique em um espaço vazio para iniciar o agendamento ({estimatedTime} min).</p>
+                    </div>
                   </div>
                   <div className="h-[600px] mb-6 overflow-x-auto">
                     <div className="h-full min-w-[700px]">
@@ -410,13 +454,13 @@ export default function ClientPortal() {
                     </div>
                   </div>
                   {selectedSlot && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between animate-in fade-in">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
                       <div>
                         <p className="text-sm font-medium text-emerald-900">Horário Selecionado:</p>
                         <p className="text-lg font-bold text-emerald-700">{format(selectedSlot.start, "dd 'de' MMMM", { locale: ptBR })} das {format(selectedSlot.start, 'HH:mm')} às {format(selectedSlot.end, 'HH:mm')}</p>
                       </div>
-                      <button onClick={handleSchedule} disabled={isSubmitting} className="flex items-center justify-center py-3 px-6 border border-transparent rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                        {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Enviando...</> : 'Confirmar Reserva'}
+                      <button onClick={() => setStep(2)} className="w-full sm:w-auto flex items-center justify-center py-3 px-6 border border-transparent rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                        Prosseguir aos Detalhes <ChevronRight className="w-4 h-4 ml-2" />
                       </button>
                     </div>
                   )}
@@ -429,70 +473,124 @@ export default function ClientPortal() {
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8 text-emerald-600" /></div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Solicitação Enviada!</h2>
                 <p className="text-slate-600 mb-6">Sua solicitação para <strong>{format(selectedSlot!.start, 'dd/MM/yyyy')}</strong> às <strong>{format(selectedSlot!.start, 'HH:mm')}</strong> foi enviada para aprovação.</p>
-                <div className="flex justify-center space-x-4">
-                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironments(1); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">Nova Solicitação</button>
-                  <button onClick={() => { setActiveTab('history'); setStep(1); }} className="px-6 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors font-medium">Ver Minhas Medições</button>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironments(1); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="w-full sm:w-auto px-6 py-3 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">Fazer Outro Agendamento</button>
+                  <button onClick={() => { setActiveTab('history'); setStep(1); }} className="w-full sm:w-auto px-6 py-3 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors font-medium">Ver Minhas Medições</button>
                 </div>
               </div>
             )}
           </div>
-        )}
+        )
+        }
 
         {/* HISTÓRICO */}
-        {activeTab === 'history' && (
-          <div className="max-w-5xl mx-auto">
-            <header className="mb-8"><h2 className="text-2xl font-bold text-slate-900">Minhas Medições</h2><p className="text-slate-500 mt-1">Acompanhe o status de todas as suas solicitações.</p></header>
-            <div className="space-y-4">
-              {myRequests.length === 0 ? (
-                <div className="bg-white p-8 rounded-2xl text-center border border-slate-200 text-slate-500">Você ainda não fez nenhuma solicitação de medição.</div>
-              ) : myRequests.map(req => (
-                <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-slate-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')} às {req.requestedTime}</h3>
-                    {req.projectName && <span className="text-sm text-slate-500">— {req.projectName}</span>}
-                    {req.status === 'pending' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Aguardando</span>}
-                    {req.status === 'confirmed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">Agendada</span>}
-                    {req.status === 'completed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Realizada</span>}
-                    {req.status === 'reschedule_requested' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Alteração Solicitada</span>}
+        {
+          activeTab === 'history' && (
+            <div className="max-w-5xl mx-auto">
+              <header className="mb-8"><h2 className="text-2xl font-bold text-slate-900">Minhas Medições</h2><p className="text-slate-500 mt-1">Acompanhe o status de todas as suas solicitações.</p></header>
+              <div className="space-y-4">
+                {myRequests.length === 0 ? (
+                  <div className="bg-white p-8 rounded-2xl text-center border border-slate-200 text-slate-500">Você ainda não fez nenhuma solicitação de medição.</div>
+                ) : myRequests.map(req => (
+                  <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="flex flex-col gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-xl font-bold text-slate-900">{req.projectName || 'Projeto sem nome'}</h3>
+                        {req.status === 'pending' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Aguardando</span>}
+                        {req.status === 'confirmed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">Agendada</span>}
+                        {req.status === 'completed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Realizada</span>}
+                        {req.status === 'reschedule_requested' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Alteração Solicitada</span>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-slate-600 font-medium text-sm">
+                        <div className="flex items-center"><CalendarIcon className="w-4 h-4 mr-1.5 shrink-0 text-slate-400" /> {format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')} às {req.requestedTime}</div>
+                        <div className="flex items-center truncate max-w-[200px] lg:max-w-md"><MapPin className="w-4 h-4 mr-1.5 shrink-0 text-slate-400" /> <span className="truncate">{req.address}</span></div>
+                      </div>
+                    </div>
+                    {req.contactName && <p className="text-sm text-slate-500 mt-1">Contato: {req.contactName} {req.contactPhone && `— ${req.contactPhone}`}</p>}
+                    <div className="flex flex-wrap items-center gap-4 mt-4 bg-slate-50 p-3 rounded-lg text-sm text-slate-700 border border-slate-100">
+                      <span className="font-semibold">{req.environmentsCount} ambientes</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="font-semibold">{req.estimatedMinutes} min. est.</span>
+                    </div>
+                    {req.rescheduleReason && <div className="mt-3 p-3 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100"><strong>Mensagem da Leão Medições:</strong> {req.rescheduleReason}</div>}
                   </div>
-                  <p className="text-sm text-slate-600 flex items-center mt-1"><MapPin className="w-4 h-4 mr-1.5 text-slate-400 shrink-0" />{req.address}</p>
-                  {req.contactName && <p className="text-sm text-slate-500 mt-1">Contato: {req.contactName} {req.contactPhone && `— ${req.contactPhone}`}</p>}
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
-                    <span>{req.environmentsCount} ambientes</span>
-                    <span>{req.estimatedMinutes} min</span>
-                  </div>
-                  {req.rescheduleReason && <div className="mt-3 p-3 bg-blue-50 text-blue-800 text-sm rounded-xl border border-blue-100"><strong>Mensagem da Leão Medições:</strong> {req.rescheduleReason}</div>}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* FATURAMENTO */}
-        {activeTab === 'billing' && (
-          <div className="max-w-5xl mx-auto">
-            <header className="mb-8 flex items-center justify-between">
-              <div><h2 className="text-2xl font-bold text-slate-900">Meu Faturamento</h2><p className="text-slate-500 mt-1">Consulte os valores das medições realizadas.</p></div>
-              <input type="month" value={billingMonth} onChange={e => setBillingMonth(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm" />
-            </header>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Total do Mês</p><h3 className="text-3xl font-bold text-slate-900">{formatCurrency(totalValue)}</h3></div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Status de Pagamento</p>{isPaid ? <h3 className="text-2xl font-bold text-emerald-600 flex items-center"><CheckCircle2 className="w-6 h-6 mr-2" />Pago</h3> : <h3 className="text-2xl font-bold text-amber-600">Em Aberto</h3>}</div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Medições Realizadas</p><h3 className="text-3xl font-bold text-slate-900">{myCompletedRequests.length}</h3></div>
+        {
+          activeTab === 'billing' && (
+            <div className="max-w-5xl mx-auto">
+              <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div><h2 className="text-2xl font-bold text-slate-900">Meu Faturamento</h2><p className="text-slate-500 mt-1">Consulte os valores das medições realizadas.</p></div>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <input type="month" value={billingMonth} onChange={e => setBillingMonth(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 text-sm font-medium w-full sm:w-auto" />
+                  <button
+                    onClick={downloadFaturaMensal}
+                    className="px-4 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors text-sm font-medium w-full sm:w-auto flex items-center justify-center shrink-0"
+                  >
+                    <FileText className="w-4 h-4 mr-2" /> Salvar Fatura Mensal (PDF)
+                  </button>
+                </div>
+              </header>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Total do Mês</p><h3 className="text-3xl font-bold text-slate-900">{formatCurrency(totalValue)}</h3></div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Status de Pagamento</p>{isPaid ? <h3 className="text-2xl font-bold text-emerald-600 flex items-center"><CheckCircle2 className="w-6 h-6 mr-2" />Pago</h3> : <h3 className="text-2xl font-bold text-amber-600">Em Aberto</h3>}</div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Medições Realizadas</p><h3 className="text-3xl font-bold text-slate-900">{myCompletedRequests.length}</h3></div>
+              </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left whitespace-nowrap">
+                    <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                      <tr>
+                        <th className="px-6 py-4">Projeto</th>
+                        <th className="px-6 py-4">Data</th>
+                        <th className="px-6 py-4 text-center">Ambientes</th>
+                        <th className="px-6 py-4 text-center">Valor Medição</th>
+                        <th className="px-6 py-4 text-center">KM Extra</th>
+                        <th className="px-6 py-4 text-center">Valor KM</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {myCompletedRequests.length === 0 ? <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => {
+                        const itemKmValue = (req.kmDriven || 0) * (clientData?.kmValue || 0 > 0 ? clientData!.kmValue : settings.defaultKmPrice);
+                        const itemBaseValue = clientData?.model === 'por_ambiente' ? req.environmentsCount * (clientData?.baseValue || 0) : (clientData?.baseValue || 0);
+
+                        return (
+                          <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-slate-900 max-w-[200px] truncate" title={req.projectName || req.contactName || 'N/A'}>{req.projectName || req.contactName || 'N/A'}</td>
+                            <td className="px-6 py-4 text-slate-600">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')}</td>
+                            <td className="px-6 py-4 text-center text-slate-600 font-medium bg-slate-50 rounded-lg">{req.environmentsCount}</td>
+                            <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(itemBaseValue)}</td>
+                            <td className="px-6 py-4 text-center text-slate-600 font-medium bg-slate-50 rounded-lg">{req.kmDriven || 0} km</td>
+                            <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(itemKmValue)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200"><tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Endereço</th><th className="px-6 py-4 text-center">Ambientes</th><th className="px-6 py-4 text-center">KM</th></tr></thead>
-                <tbody className="divide-y divide-stone-200">
-                  {myCompletedRequests.length === 0 ? <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => (
-                    <tr key={req.id} className="hover:bg-slate-50"><td className="px-6 py-4 font-medium text-slate-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')}</td><td className="px-6 py-4 text-slate-600 truncate max-w-xs">{req.address}</td><td className="px-6 py-4 text-center text-slate-600">{req.environmentsCount}</td><td className="px-6 py-4 text-center text-slate-600">{req.kmDriven || 0} km</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+          )
+        }
+      </main >
+
+      {/* Floating Action Button for Mobile */}
+      {
+        activeTab !== 'new_request' && (
+          <button
+            onClick={() => { setActiveTab('new_request'); setStep(1); }}
+            className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 hover:scale-105 transition-all z-50"
+            title="Nova Medição"
+          >
+            <Plus className="w-7 h-7" />
+          </button>
+        )
+      }
+    </div >
   );
 }

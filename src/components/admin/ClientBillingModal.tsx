@@ -10,8 +10,8 @@ import { toast } from 'sonner';
 
 // ========================
 // Estilos do PDF do Cliente
-// ========================
-const styles = StyleSheet.create({
+// ========================// PDF Styles
+export const pdfStyles = StyleSheet.create({
      page: { padding: 40, fontFamily: 'Helvetica', fontSize: 10, color: '#1e293b' },
      header: { flexDirection: 'row', justifyContent: 'space-between', borderBottom: '1 solid #cbd5e1', paddingBottom: 16, marginBottom: 24 },
      headerLeft: { flex: 1 },
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
      footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', color: '#94a3b8', fontSize: 8, borderTop: '1 solid #e2e8f0', paddingTop: 10 }
 });
 
-const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalEnvs, settings }: { client: Client, requests: MeasurementRequest[], month: string, totalValue: number, totalKm: number, totalEnvs: number, settings: GlobalSettings }) => {
+export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalEnvs, settings }: { client: Client, requests: MeasurementRequest[], month: string, totalValue: number, totalKm: number, totalEnvs: number, settings: GlobalSettings }) => {
      const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
      const companyName = settings.companyName || 'Leão Medições';
      const companyCnpj = settings.companyCnpj || '00.000.000/0000-00';
@@ -57,46 +57,46 @@ const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalE
 
      return (
           <Document title={`Fatura ${client.name} — ${month}`}>
-               <Page size="A4" style={styles.page}>
+               <Page size="A4" style={pdfStyles.page}>
                     {/* Header */}
-                    <View style={styles.header}>
-                         <View style={styles.headerLeft}>
-                              <Text style={styles.companyName}>{companyName.toUpperCase()}</Text>
-                              <Text style={styles.companyData}>CNPJ: {companyCnpj}</Text>
-                              <Text style={styles.companyData}>Endereço: {companyAddress}</Text>
-                              <Text style={styles.companyData}>Contato: {companyPhone}</Text>
+                    <View style={pdfStyles.header}>
+                         <View style={pdfStyles.headerLeft}>
+                              <Text style={pdfStyles.companyName}>{companyName.toUpperCase()}</Text>
+                              <Text style={pdfStyles.companyData}>CNPJ: {companyCnpj}</Text>
+                              <Text style={pdfStyles.companyData}>Endereço: {companyAddress}</Text>
+                              <Text style={pdfStyles.companyData}>Contato: {companyPhone}</Text>
                          </View>
-                         <View style={styles.headerRight}>
-                              <Text style={styles.faturaTitle}>FATURA</Text>
-                              <Text style={styles.faturaData}>Referência: {month}</Text>
+                         <View style={pdfStyles.headerRight}>
+                              <Text style={pdfStyles.faturaTitle}>FATURA</Text>
+                              <Text style={pdfStyles.faturaData}>Referência: {month}</Text>
                          </View>
                     </View>
 
                     {/* Cliente Info */}
-                    <View style={styles.clientBox}>
-                         <Text style={styles.clientTitle}>Dados da Loja / Cliente</Text>
-                         <View style={styles.clientDataRow}>
-                              <Text style={styles.clientDataLabel}>Razão Social:</Text>
-                              <Text style={styles.clientDataValue}>{client.name}</Text>
+                    <View style={pdfStyles.clientBox}>
+                         <Text style={pdfStyles.clientTitle}>Dados da Loja / Cliente</Text>
+                         <View style={pdfStyles.clientDataRow}>
+                              <Text style={pdfStyles.clientDataLabel}>Razão Social:</Text>
+                              <Text style={pdfStyles.clientDataValue}>{client.name}</Text>
                          </View>
-                         <View style={styles.clientDataRow}>
-                              <Text style={styles.clientDataLabel}>Documento:</Text>
-                              <Text style={styles.clientDataValue}>{client.cnpj || 'Não informado'}</Text>
+                         <View style={pdfStyles.clientDataRow}>
+                              <Text style={pdfStyles.clientDataLabel}>Documento:</Text>
+                              <Text style={pdfStyles.clientDataValue}>{client.cnpj || 'Não informado'}</Text>
                          </View>
-                         <View style={styles.clientDataRow}>
-                              <Text style={styles.clientDataLabel}>Endereço:</Text>
-                              <Text style={styles.clientDataValue}>{client.address || 'Não informado'}</Text>
+                         <View style={pdfStyles.clientDataRow}>
+                              <Text style={pdfStyles.clientDataLabel}>Endereço:</Text>
+                              <Text style={pdfStyles.clientDataValue}>{client.address || 'Não informado'}</Text>
                          </View>
                     </View>
 
                     {/* Tabela de Medições */}
-                    <View style={styles.table}>
-                         <View style={styles.tableHeader}>
-                              <Text style={[styles.th, styles.colDate]}>Data Realiz.</Text>
-                              <Text style={[styles.th, styles.colProject]}>Projeto / Cliente Final</Text>
-                              <Text style={[styles.th, styles.colEnvs]}>Ambientes (R$)</Text>
-                              <Text style={[styles.th, styles.colKm]}>KM Adicional (R$)</Text>
-                              <Text style={[styles.th, styles.colValue]}>Valor Calculado</Text>
+                    <View style={pdfStyles.table}>
+                         <View style={pdfStyles.tableHeader}>
+                              <Text style={[pdfStyles.th, pdfStyles.colDate]}>Data Realiz.</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colProject]}>Projeto / Cliente Final</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colEnvs]}>Ambientes (R$)</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colKm]}>KM Adicional (R$)</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colValue]}>Valor Calculado</Text>
                          </View>
                          {requests.map((r, i) => {
                               const itemKmValue = (r.kmDriven || 0) * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice);
@@ -109,39 +109,39 @@ const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalE
                               const itemTotal = itemBaseValue + itemKmValue;
 
                               return (
-                                   <View key={i} style={[styles.tableRow, i === requests.length - 1 ? { borderBottom: 0 } : {}]}>
-                                        <Text style={[styles.td, styles.colDate]}>{format(new Date(`${r.requestedDate}T12:00:00`), 'dd/MM/yyyy')}</Text>
-                                        <Text style={[styles.td, styles.colProject]}>{r.projectName || r.contactName || 'Sem nome'}</Text>
-                                        <Text style={[styles.td, styles.colEnvs]}>{r.environmentsCount} ({formatCurrency(itemBaseValue)})</Text>
-                                        <Text style={[styles.td, styles.colKm]}>{r.kmDriven || 0} ({formatCurrency(itemKmValue)})</Text>
-                                        <Text style={[styles.td, styles.colValue]}>{formatCurrency(itemTotal)}</Text>
+                                   <View key={i} style={[pdfStyles.tableRow, i === requests.length - 1 ? { borderBottom: 0 } : {}]}>
+                                        <Text style={[pdfStyles.td, pdfStyles.colDate]}>{format(new Date(`${r.requestedDate}T12:00:00`), 'dd/MM/yyyy')}</Text>
+                                        <Text style={[pdfStyles.td, pdfStyles.colProject]}>{r.projectName || r.contactName || 'Sem nome'}</Text>
+                                        <Text style={[pdfStyles.td, pdfStyles.colEnvs]}>{r.environmentsCount} ({formatCurrency(itemBaseValue)})</Text>
+                                        <Text style={[pdfStyles.td, pdfStyles.colKm]}>{r.kmDriven || 0} ({formatCurrency(itemKmValue)})</Text>
+                                        <Text style={[pdfStyles.td, pdfStyles.colValue]}>{formatCurrency(itemTotal)}</Text>
                                    </View>
                               );
                          })}
                     </View>
 
                     {/* Totais */}
-                    <View style={styles.totalsBox}>
-                         <View style={styles.totalRow}>
-                              <Text style={styles.totalLabel}>Total de Medições/Ambientes:</Text>
-                              <Text style={styles.totalValue}>{requests.length} med / {totalEnvs} amb</Text>
+                    <View style={pdfStyles.totalsBox}>
+                         <View style={pdfStyles.totalRow}>
+                              <Text style={pdfStyles.totalLabel}>Total de Medições/Ambientes:</Text>
+                              <Text style={pdfStyles.totalValue}>{requests.length} med / {totalEnvs} amb</Text>
                          </View>
-                         <View style={styles.totalRow}>
-                              <Text style={styles.totalLabel}>Custo de Medições:</Text>
-                              <Text style={styles.totalValue}>{formatCurrency(requests.reduce((acc, r) => acc + (client.model === 'por_ambiente' ? r.environmentsCount * client.baseValue : client.baseValue), 0))}</Text>
+                         <View style={pdfStyles.totalRow}>
+                              <Text style={pdfStyles.totalLabel}>Custo de Medições:</Text>
+                              <Text style={pdfStyles.totalValue}>{formatCurrency(requests.reduce((acc, r) => acc + (client.model === 'por_ambiente' ? r.environmentsCount * client.baseValue : client.baseValue), 0))}</Text>
                          </View>
-                         <View style={styles.totalRow}>
-                              <Text style={styles.totalLabel}>Total de KM Adicional:</Text>
-                              <Text style={styles.totalValue}>{totalKm} km ({formatCurrency(totalKm * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice))})</Text>
+                         <View style={pdfStyles.totalRow}>
+                              <Text style={pdfStyles.totalLabel}>Total de KM Adicional:</Text>
+                              <Text style={pdfStyles.totalValue}>{totalKm} km ({formatCurrency(totalKm * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice))})</Text>
                          </View>
-                         <View style={[styles.totalRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #cbd5e1' }]}>
-                              <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }]}>VALOR DA FATURA:</Text>
-                              <Text style={styles.grandTotalValue}>{formatCurrency(totalValue)}</Text>
+                         <View style={[pdfStyles.totalRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #cbd5e1' }]}>
+                              <Text style={[pdfStyles.totalLabel, { fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }]}>VALOR DA FATURA:</Text>
+                              <Text style={pdfStyles.grandTotalValue}>{formatCurrency(totalValue)}</Text>
                          </View>
                     </View>
 
                     {/* Footer */}
-                    <Text style={styles.footer}>
+                    <Text style={pdfStyles.footer}>
                          Documento gerado pelo sistema {companyName} em {format(new Date(), "dd/MM/yyyy 'às' HH:mm")}
                     </Text>
                </Page>
