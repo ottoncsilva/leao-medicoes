@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { requestService, MeasurementRequest } from '../../services/requestService';
+import { requestService, MeasurementRequest, Environment } from '../../services/requestService';
 import { whatsappService } from '../../services/whatsappService';
 import { GlobalSettings } from '../../services/settingsService';
 import { Client } from '../../services/clientService';
@@ -17,13 +17,23 @@ interface Props {
 
 export default function CompleteRequestModal({ request, settings, clients, onClose, onSuccess }: Props) {
   const [kmInput, setKmInput] = useState('');
+  const [environments, setEnvironments] = useState<Environment[]>(
+    request.environments || Array(request.environmentsCount || 0).fill(null).map((_, i) => ({
+      id: crypto.randomUUID(),
+      name: `Ambiente ${i + 1}`,
+      isMeasured: true
+    }))
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await requestService.updateRequestStatus(request.id!, 'completed', { kmDriven: Number(kmInput) || 0 });
+      await requestService.updateRequestStatus(request.id!, 'completed', {
+        kmDriven: Number(kmInput) || 0,
+        environments
+      });
 
       const client = clients.find(c => c.id === request.clientId);
       if (client?.phone && settings.notifyClientCompleted) {
@@ -66,6 +76,49 @@ export default function CompleteRequestModal({ request, settings, clients, onClo
               autoFocus
             />
           </div>
+
+          {environments.length > 0 && (
+            <div className="mb-6 space-y-3">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Ambientes Medidos</label>
+              <div className="max-h-48 overflow-y-auto pr-2 space-y-3">
+                {environments.map((env) => (
+                  <div key={env.id} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={env.isMeasured}
+                        onChange={(e) => {
+                          setEnvironments(prev => prev.map(p =>
+                            p.id === env.id ? { ...p, isMeasured: e.target.checked, observation: e.target.checked ? '' : p.observation } : p
+                          ));
+                        }}
+                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-600"
+                        id={`env-${env.id}`}
+                      />
+                      <label htmlFor={`env-${env.id}`} className="font-medium text-slate-700 select-none cursor-pointer">
+                        {env.name}
+                      </label>
+                    </div>
+                    {!env.isMeasured && (
+                      <input
+                        type="text"
+                        placeholder="Motivo de não ter sido medido"
+                        value={env.observation || ''}
+                        onChange={(e) => {
+                          setEnvironments(prev => prev.map(p =>
+                            p.id === env.id ? { ...p, observation: e.target.value } : p
+                          ));
+                        }}
+                        required
+                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-emerald-600 focus:border-emerald-600"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end space-x-3">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium">
               Cancelar

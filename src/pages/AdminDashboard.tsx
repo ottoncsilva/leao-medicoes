@@ -135,10 +135,10 @@ export default function AdminDashboard() {
     return { name: format(d, 'MMM', { locale: ptBR }).toUpperCase(), Faturamento: monthTotal };
   });
 
-  const nextAppointments = requests
-    .filter(r => r.status === 'confirmed' && new Date(`${r.requestedDate}T${r.requestedTime}`) > new Date())
-    .sort((a, b) => new Date(`${a.requestedDate}T${a.requestedTime}`).getTime() - new Date(`${b.requestedDate}T${b.requestedTime}`).getTime())
-    .slice(0, 6);
+  const todaysDate = format(new Date(), 'yyyy-MM-dd');
+  const todaysMeasurements = requests
+    .filter(r => r.status === 'confirmed' && r.requestedDate === todaysDate)
+    .sort((a, b) => a.requestedTime.localeCompare(b.requestedTime));
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row relative">
@@ -186,6 +186,43 @@ export default function AdminDashboard() {
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
+
+                {/* Medições de Hoje para Completar */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-emerald-600" />
+                      Medições de Hoje para Completar ({format(new Date(), 'dd/MM/yyyy')})
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {todaysMeasurements.length === 0 ? (
+                      <p className="text-slate-500 text-sm py-4 col-span-full text-center bg-slate-50 rounded-xl border border-slate-100">
+                        Nenhuma medição agendada para hoje.
+                      </p>
+                    ) : (
+                      todaysMeasurements.map(req => (
+                        <div key={req.id} onClick={() => setCompleteModalId(req.id!)} className="p-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-md cursor-pointer transition-all bg-white relative overflow-hidden group">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-xl"></div>
+                          <div className="flex justify-between items-start mb-2 gap-2 pl-2">
+                            <h4 className="font-semibold text-slate-900 group-hover:text-emerald-700 line-clamp-1">{req.clientName}</h4>
+                            <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full whitespace-nowrap shrink-0">
+                              {req.requestedTime}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-2 text-sm text-slate-600 pl-2">
+                            <span className="flex items-start"><MapPin className="w-4 h-4 mr-1.5 shrink-0 mt-0.5 text-slate-400" /><span className="line-clamp-2">{req.address}</span></span>
+                            <span className="font-medium text-emerald-700">{req.environmentsCount} ambientes</span>
+                          </div>
+                          <div className="mt-3 pl-2">
+                            <span className="text-sm font-medium text-emerald-600 underline underline-offset-2">Completar Medição →</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <p className="text-sm font-medium text-slate-500 mb-1">Faturamento (Mês Atual)</p>
@@ -202,43 +239,18 @@ export default function AdminDashboard() {
                     <h3 className="text-3xl font-bold text-amber-600">{requests.filter(r => r.status === 'pending').length}</h3>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-6 shrink-0">Faturamento — Últimos 6 Meses</h3>
-                    <div className="h-80 w-full shrink-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} tickFormatter={v => `R$ ${v}`} />
-                          <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-                          <Bar dataKey="Faturamento" fill="#1c1917" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4 shrink-0">Próximas 6 Medições</h3>
-                    <div className="space-y-3 overflow-y-auto pr-2 flex-1">
-                      {nextAppointments.length === 0 ? (
-                        <p className="text-slate-500 text-sm text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Nenhuma medição futura agendada.</p>
-                      ) : (
-                        nextAppointments.map(req => (
-                          <div key={req.id} onClick={() => setCompleteModalId(req.id!)} className="p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all group flex flex-col">
-                            <div className="flex justify-between items-start mb-2 gap-2">
-                              <h4 className="font-semibold text-slate-900 group-hover:text-emerald-800 line-clamp-1">{req.clientName}</h4>
-                              <span className="text-xs font-medium bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full whitespace-nowrap shrink-0">
-                                {format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM')} às {req.requestedTime}
-                              </span>
-                            </div>
-                            <div className="flex flex-col gap-1.5 text-sm text-slate-600">
-                              <span className="flex items-start"><MapPin className="w-4 h-4 mr-1.5 shrink-0 mt-0.5" /><span className="line-clamp-2">{req.address}</span></span>
-                              <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5 shrink-0" />{req.estimatedMinutes} min • {req.environmentsCount} ambientes</span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-6 font-medium">Faturamento — Últimos 6 Meses</h3>
+                  <div className="h-80 w-full shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} tickFormatter={v => `R$ ${v}`} />
+                        <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+                        <Bar dataKey="Faturamento" fill="#1c1917" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
