@@ -98,14 +98,14 @@ export default function RequestsTab({ requests, filter, onFilterChange, clients,
                                         </div>
                                    )}
                               </div>
-                              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full lg:w-auto mt-4 lg:mt-0">
                                    {req.status === 'pending' && (<>
-                                        <button onClick={() => handleUpdateStatus(req.id!, 'confirmed')} className="flex items-center px-4 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors text-sm font-medium"><CheckCircle2 className="w-4 h-4 mr-2" />Aprovar</button>
-                                        <button onClick={() => onRescheduleOpen(req)} className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors text-sm font-medium"><MessageSquare className="w-4 h-4 mr-2" />Pedir Alteração</button>
-                                        <button onClick={() => handleUpdateStatus(req.id!, 'rejected')} className="flex items-center px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-medium"><XCircle className="w-4 h-4 mr-2" />Recusar</button>
+                                        <button onClick={() => handleUpdateStatus(req.id!, 'confirmed')} className="flex items-center justify-center px-4 py-2.5 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors text-sm font-medium w-full sm:w-auto"><CheckCircle2 className="w-4 h-4 mr-2" />Aprovar</button>
+                                        <button onClick={() => onRescheduleOpen(req)} className="flex items-center justify-center px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors text-sm font-medium w-full sm:w-auto"><MessageSquare className="w-4 h-4 mr-2" />Pedir Alteração</button>
+                                        <button onClick={() => handleUpdateStatus(req.id!, 'rejected')} className="flex items-center justify-center px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-medium w-full sm:w-auto"><XCircle className="w-4 h-4 mr-2" />Recusar</button>
                                    </>)}
                                    {req.status === 'confirmed' && (
-                                        <button onClick={() => onCompleteOpen(req.id!)} className="flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium"><CheckCircle2 className="w-4 h-4 mr-2" />Marcar como Realizada</button>
+                                        <button onClick={() => onCompleteOpen(req.id!)} className="flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium w-full sm:w-auto"><CheckCircle2 className="w-4 h-4 mr-2" />Marcar como Realizada</button>
                                    )}
                               </div>
                          </div>

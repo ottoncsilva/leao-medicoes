@@ -8,7 +8,7 @@ interface Props {
      onRefresh: () => void;
 }
 
-type SettingsTab = 'financeiro' | 'comunicacao' | 'feriados' | 'outros';
+type SettingsTab = 'financeiro' | 'comunicacao' | 'feriados' | 'empresa' | 'outros';
 
 export default function SettingsTab({ settings, onRefresh }: Props) {
      const [activeTab, setActiveTab] = useState<SettingsTab>('financeiro');
@@ -28,6 +28,10 @@ export default function SettingsTab({ settings, onRefresh }: Props) {
           workOnSundays: settings.workOnSundays ?? false,
           workStartTime: settings.workStartTime || '08:00',
           workEndTime: settings.workEndTime || '18:00',
+          companyName: settings.companyName || '',
+          companyCnpj: settings.companyCnpj || '',
+          companyAddress: settings.companyAddress || '',
+          companyPhone: settings.companyPhone || '',
      });
      const [newHoliday, setNewHoliday] = useState({ date: '', name: '', type: 'fixed' as 'fixed' | 'specific' });
      const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +56,10 @@ export default function SettingsTab({ settings, onRefresh }: Props) {
                     workOnSundays: form.workOnSundays,
                     workStartTime: form.workStartTime,
                     workEndTime: form.workEndTime,
+                    companyName: form.companyName,
+                    companyCnpj: form.companyCnpj,
+                    companyAddress: form.companyAddress,
+                    companyPhone: form.companyPhone,
                });
                toast.success('Configurações salvas com sucesso!');
                onRefresh();
@@ -78,6 +86,7 @@ export default function SettingsTab({ settings, onRefresh }: Props) {
           { key: 'financeiro', label: 'Financeiro' },
           { key: 'comunicacao', label: 'Comunicação (WhatsApp)' },
           { key: 'feriados', label: 'Feriados e Horários' },
+          { key: 'empresa', label: 'Dados da Empresa' },
           { key: 'outros', label: 'Outros' },
      ];
 
@@ -92,9 +101,9 @@ export default function SettingsTab({ settings, onRefresh }: Props) {
                </div>
 
                {/* Sub-tabs */}
-               <div className="flex space-x-4 border-b border-slate-200 mb-6 overflow-x-auto">
+               <div className="flex space-x-4 border-b border-slate-200 mb-6 overflow-x-auto no-scrollbar">
                     {TABS.map(t => (
-                         <button key={t.key} onClick={() => setActiveTab(t.key)} className={`pb-3 text-sm font-medium whitespace-nowrap ${activeTab === t.key ? 'border-b-2 border-blue-950 text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>{t.label}</button>
+                         <button type="button" key={t.key} onClick={() => setActiveTab(t.key)} className={`pb-3 text-sm font-medium whitespace-nowrap ${activeTab === t.key ? 'border-b-2 border-blue-950 text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>{t.label}</button>
                     ))}
                </div>
 
@@ -197,6 +206,28 @@ export default function SettingsTab({ settings, onRefresh }: Props) {
                               <div className="pt-6 border-t border-slate-200 mt-8">
                                    <button type="submit" disabled={isSaving} className="px-6 py-3 bg-blue-950 text-white rounded-xl hover:bg-blue-900 text-sm font-medium disabled:opacity-50">{isSaving ? 'Salvando...' : 'Salvar Configurações'}</button>
                               </div>
+                         </div>
+                    )}
+
+                    {activeTab === 'empresa' && (
+                         <div className="space-y-6">
+                              <div>
+                                   <label className="block text-sm font-medium text-slate-700 mb-2">Razão Social / Nome da Empresa</label>
+                                   <input type="text" value={form.companyName} onChange={e => setForm(p => ({ ...p, companyName: e.target.value }))} className={inputClass} placeholder="Ex: Leão Medições Ltda" />
+                              </div>
+                              <div>
+                                   <label className="block text-sm font-medium text-slate-700 mb-2">CNPJ</label>
+                                   <input type="text" value={form.companyCnpj} onChange={e => setForm(p => ({ ...p, companyCnpj: e.target.value }))} className={inputClass} placeholder="00.000.000/0000-00" />
+                              </div>
+                              <div>
+                                   <label className="block text-sm font-medium text-slate-700 mb-2">Endereço Completo</label>
+                                   <input type="text" value={form.companyAddress} onChange={e => setForm(p => ({ ...p, companyAddress: e.target.value }))} className={inputClass} placeholder="Rua, Número, Bairro, Cidade - Estado" />
+                              </div>
+                              <div>
+                                   <label className="block text-sm font-medium text-slate-700 mb-2">Telefone (Empresa)</label>
+                                   <input type="text" value={form.companyPhone} onChange={e => setForm(p => ({ ...p, companyPhone: e.target.value }))} className={inputClass} placeholder="(00) 00000-0000" />
+                              </div>
+                              <div className="flex justify-end pt-4"><button disabled={isSaving} type="submit" className="px-6 py-2.5 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors font-medium">{isSaving ? 'Salvando...' : 'Salvar Configurações'}</button></div>
                          </div>
                     )}
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import { MeasurementRequest } from '../../services/requestService';
 import { Client } from '../../services/clientService';
@@ -5,8 +6,9 @@ import { GlobalSettings } from '../../services/settingsService';
 import { BillingStatus, billingService } from '../../services/billingService';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Check, FileDown } from 'lucide-react';
+import { Check, FileDown, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import ClientBillingModal from './ClientBillingModal';
 
 // PDF Styles
 const pdfStyles = StyleSheet.create({
@@ -78,6 +80,7 @@ interface Props {
 }
 
 export default function BillingTab({ clients, requests, billingStatuses, settings, billingMonth, onMonthChange, onRefresh }: Props) {
+     const [selectedBill, setSelectedBill] = useState<BillingEntry | null>(null);
      const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
      const [yearStr, monthStr] = billingMonth.split('-');
@@ -186,13 +189,16 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                                    {billingData.length === 0 ? (
                                         <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr>
                                    ) : billingData.map(bill => (
-                                        <tr key={bill.clientId} className="hover:bg-slate-50 transition-colors">
-                                             <td className="px-6 py-4 font-medium text-slate-900">{bill.clientName}</td>
+                                        <tr key={bill.clientId} onClick={() => setSelectedBill(bill)} className="hover:bg-slate-50 transition-colors cursor-pointer group">
+                                             <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-2">
+                                                  {bill.clientName}
+                                                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400"><Eye className="w-4 h-4 ml-2" /></span>
+                                             </td>
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.requestsCount}</td>
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.totalEnvs}</td>
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.totalKm}</td>
                                              <td className="px-6 py-4 text-right font-medium text-slate-900">{formatCurrency(bill.totalValue)}</td>
-                                             <td className="px-6 py-4 text-center">
+                                             <td className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
                                                   {bill.isPaid ? (
                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><Check className="w-3 h-3 mr-1" />Pago</span>
                                                   ) : (
@@ -205,6 +211,17 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                          </table>
                     </div>
                </div>
+
+               {selectedBill && (
+                    <ClientBillingModal
+                         client={clients.find(c => c.id === selectedBill.clientId)!}
+                         requests={requests.filter(r => r.clientId === selectedBill.clientId && r.status === 'completed' && isWithinInterval(new Date(`${r.requestedDate}T12:00:00`), { start: selectedMonthStart, end: selectedMonthEnd }))}
+                         monthStr={format(selectedMonthStart, 'MMMM/yyyy', { locale: ptBR })}
+                         totalValue={selectedBill.totalValue}
+                         settings={settings}
+                         onClose={() => setSelectedBill(null)}
+                    />
+               )}
           </div>
      );
 }

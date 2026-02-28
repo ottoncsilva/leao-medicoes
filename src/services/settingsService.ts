@@ -24,6 +24,10 @@ export interface GlobalSettings {
   workOnSundays?: boolean;
   workStartTime?: string;
   workEndTime?: string;
+  companyName?: string;
+  companyCnpj?: string;
+  companyAddress?: string;
+  companyPhone?: string;
 }
 
 export const FIXED_HOLIDAYS = [
@@ -53,7 +57,11 @@ export const settingsService = {
           workOnSaturdays: data.workOnSaturdays ?? false,
           workOnSundays: data.workOnSundays ?? false,
           workStartTime: data.workStartTime || '08:00',
-          workEndTime: data.workEndTime || '18:00'
+          workEndTime: data.workEndTime || '18:00',
+          companyName: data.companyName || '',
+          companyCnpj: data.companyCnpj || '',
+          companyAddress: data.companyAddress || '',
+          companyPhone: data.companyPhone || ''
         };
       }
       return {
@@ -67,7 +75,11 @@ export const settingsService = {
         workOnSaturdays: false,
         workOnSundays: false,
         workStartTime: '08:00',
-        workEndTime: '18:00'
+        workEndTime: '18:00',
+        companyName: '',
+        companyCnpj: '',
+        companyAddress: '',
+        companyPhone: ''
       }; // Valor padrão caso não exista
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
@@ -77,7 +89,11 @@ export const settingsService = {
         workOnSaturdays: false,
         workOnSundays: false,
         workStartTime: '08:00',
-        workEndTime: '18:00'
+        workEndTime: '18:00',
+        companyName: '',
+        companyCnpj: '',
+        companyAddress: '',
+        companyPhone: ''
       };
     }
   },

@@ -250,33 +250,35 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                </div>
 
                {/* Calendar */}
-               <div className="flex-1 min-h-0">
-                    <DnDCalendar
-                         localizer={localizer}
-                         culture="pt-BR"
-                         events={calendarEvents}
-                         startAccessor={(event: any) => event.start}
-                         endAccessor={(event: any) => event.end}
-                         style={{ height: '100%' }}
-                         view={view}
-                         onView={setView}
-                         date={date}
-                         onNavigate={setDate}
-                         eventPropGetter={eventStyleGetter}
-                         slotPropGetter={slotPropGetter}
-                         dayPropGetter={dayPropGetter}
-                         selectable={true}
-                         onSelectSlot={handleSelectSlot}
-                         onSelectEvent={handleSelectEvent}
-                         onEventDrop={onEventDrop}
-                         onEventResize={onEventResize}
-                         resizable={true}
-                         step={30}
-                         timeslots={1}
-                         min={new Date(0, 0, 0, Math.max(0, workStartHour - 1), 0, 0)}
-                         max={new Date(0, 0, 0, Math.min(23, workEndHour + 1), 0, 0)}
-                         messages={PT_BR_MESSAGES}
-                    />
+               <div className="flex-1 min-h-0 overflow-x-auto">
+                    <div className="h-full min-w-[800px]">
+                         <DnDCalendar
+                              localizer={localizer}
+                              culture="pt-BR"
+                              events={calendarEvents}
+                              startAccessor={(event: any) => event.start}
+                              endAccessor={(event: any) => event.end}
+                              style={{ height: '100%' }}
+                              view={view}
+                              onView={setView}
+                              date={date}
+                              onNavigate={setDate}
+                              eventPropGetter={eventStyleGetter}
+                              slotPropGetter={slotPropGetter}
+                              dayPropGetter={dayPropGetter}
+                              selectable={true}
+                              onSelectSlot={handleSelectSlot}
+                              onSelectEvent={handleSelectEvent}
+                              onEventDrop={onEventDrop}
+                              onEventResize={onEventResize}
+                              resizable={true}
+                              step={30}
+                              timeslots={1}
+                              min={new Date(0, 0, 0, Math.max(0, workStartHour - 1), 0, 0)}
+                              max={new Date(0, 0, 0, Math.min(23, workEndHour + 1), 0, 0)}
+                              messages={PT_BR_MESSAGES}
+                         />
+                    </div>
                </div>
 
                {/* Modals */}

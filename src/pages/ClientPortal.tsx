@@ -382,30 +382,32 @@ export default function ClientPortal() {
                     <div><h2 className="text-xl font-semibold text-slate-900">Escolha o Horário</h2><p className="text-sm text-slate-500 mt-1">Clique em um espaço vazio para agendar ({estimatedTime} min).</p></div>
                     <button onClick={() => setStep(1)} className="flex items-center text-sm text-slate-500 hover:text-slate-900 font-medium"><ArrowLeft className="w-4 h-4 mr-1" />Voltar</button>
                   </div>
-                  <div className="h-[600px] mb-6">
-                    <Calendar
-                      localizer={localizer}
-                      culture="pt-BR"
-                      events={calendarEvents}
-                      startAccessor="start"
-                      endAccessor="end"
-                      style={{ height: '100%' }}
-                      view={calendarView}
-                      onView={setCalendarView}
-                      date={calendarDate}
-                      onNavigate={setCalendarDate}
-                      eventPropGetter={eventStyleGetter}
-                      slotPropGetter={portalSlotPropGetter}
-                      dayPropGetter={portalDayPropGetter}
-                      selectable={true}
-                      onSelectSlot={handleSelectSlot}
-                      onSelectEvent={handleSelectEvent}
-                      step={30}
-                      timeslots={1}
-                      min={new Date(0, 0, 0, workStartHour, workStartMin || 0, 0)}
-                      max={new Date(0, 0, 0, workEndHour, workEndMin || 0, 0)}
-                      messages={PT_BR_MESSAGES}
-                    />
+                  <div className="h-[600px] mb-6 overflow-x-auto">
+                    <div className="h-full min-w-[700px]">
+                      <Calendar
+                        localizer={localizer}
+                        culture="pt-BR"
+                        events={calendarEvents}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: '100%' }}
+                        view={calendarView}
+                        onView={setCalendarView}
+                        date={calendarDate}
+                        onNavigate={setCalendarDate}
+                        eventPropGetter={eventStyleGetter}
+                        slotPropGetter={portalSlotPropGetter}
+                        dayPropGetter={portalDayPropGetter}
+                        selectable={true}
+                        onSelectSlot={handleSelectSlot}
+                        onSelectEvent={handleSelectEvent}
+                        step={30}
+                        timeslots={1}
+                        min={new Date(0, 0, 0, workStartHour, workStartMin || 0, 0)}
+                        max={new Date(0, 0, 0, workEndHour, workEndMin || 0, 0)}
+                        messages={PT_BR_MESSAGES}
+                      />
+                    </div>
                   </div>
                   {selectedSlot && (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between animate-in fade-in">

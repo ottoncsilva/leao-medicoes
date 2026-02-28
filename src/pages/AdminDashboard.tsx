@@ -103,8 +103,8 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row relative">
       <Toaster position="top-right" richColors />
 
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-blue-950 text-stone-300 flex flex-col shrink-0">
+      {/* Sidebar (Desktop) */}
+      <aside className="hidden md:flex w-64 bg-blue-950 text-stone-300 flex-col shrink-0">
         <div className="p-6">
           <h1 className="text-xl font-bold text-white">Leão Medições</h1>
           <p className="text-xs text-slate-500 mt-1">Painel do Gestor</p>
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-stone-800 hidden md:block">
+        <div className="p-4 border-t border-blue-900 mt-auto">
           <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-blue-900 hover:text-white transition-colors">
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sair</span>
@@ -130,8 +130,8 @@ export default function AdminDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-auto">
-        <header className="mb-8">
+      <main className="flex-1 p-4 md:p-8 overflow-auto pb-24 md:pb-8">
+        <header className="mb-6 md:mb-8">
           <h2 className="text-2xl font-bold text-slate-900">{TAB_TITLES[activeTab].title}</h2>
           <p className="text-slate-500 mt-1">{TAB_TITLES[activeTab].sub}</p>
         </header>
@@ -226,26 +226,45 @@ export default function AdminDashboard() {
               <SettingsTab settings={settings} onRefresh={fetchData} />
             )}
           </>
-        )}
-      </main>
+        )
+        }
+      </main >
 
       {/* Modais Globais */}
-      {completeModalId && (
-        <CompleteRequestModal
-          requestId={completeModalId}
-          onClose={() => setCompleteModalId(null)}
-          onSuccess={fetchData}
-        />
-      )}
-      {rescheduleModalReq && (
-        <RescheduleModal
-          request={rescheduleModalReq}
-          settings={settings}
-          clients={clients}
-          onClose={() => setRescheduleModalReq(null)}
-          onSuccess={fetchData}
-        />
-      )}
-    </div>
+      {
+        completeModalId && (
+          <CompleteRequestModal
+            requestId={completeModalId}
+            onClose={() => setCompleteModalId(null)}
+            onSuccess={fetchData}
+          />
+        )
+      }
+      {
+        rescheduleModalReq && (
+          <RescheduleModal
+            request={rescheduleModalReq}
+            settings={settings}
+            clients={clients}
+            onClose={() => setRescheduleModalReq(null)}
+            onSuccess={fetchData}
+          />
+        )
+      }
+      {/* Bottom Navigation (Mobile) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-between px-2 py-2 z-50">
+        {NAV_ITEMS.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex flex-col items-center justify-center w-full py-1 ${activeTab === key ? 'text-blue-950' : 'text-slate-500 hover:text-slate-900'}`}
+          >
+            <Icon className={`w-5 h-5 mb-1 ${activeTab === key ? 'text-blue-950' : ''}`} />
+            <span className="text-[10px] font-medium leading-none truncate max-w-[60px]">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+    </div >
   );
 }
