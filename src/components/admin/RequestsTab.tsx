@@ -24,12 +24,14 @@ interface Props {
 
 export default function RequestsTab({ requests, filter, onFilterChange, clients, settings, blockedTimes, onCompleteOpen, onRescheduleOpen, onRefresh }: Props) {
      const [clientFilter, setClientFilter] = useState<string>('all');
+     const [hideCompleted, setHideCompleted] = useState<boolean>(true);
      const [editRequest, setEditRequest] = useState<MeasurementRequest | null>(null);
 
      const filtered = requests.filter(r => {
           const matchStatus = filter === 'all' || r.status === filter;
           const matchClient = clientFilter === 'all' || r.clientId === clientFilter;
-          return matchStatus && matchClient;
+          const matchHidden = hideCompleted ? r.status !== 'completed' : true;
+          return matchStatus && matchClient && matchHidden;
      });
 
      const handleUpdateStatus = async (id: string, status: RequestStatus) => {
@@ -99,6 +101,18 @@ export default function RequestsTab({ requests, filter, onFilterChange, clients,
                          <option value="all">Loja: Todas</option>
                          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
+
+                    <div className="hidden sm:block w-px h-6 bg-slate-200 mx-2"></div>
+
+                    <label className="flex items-center space-x-2 px-3 py-2 cursor-pointer group w-full sm:w-auto mt-2 sm:mt-0">
+                         <input
+                              type="checkbox"
+                              checked={hideCompleted}
+                              onChange={(e) => setHideCompleted(e.target.checked)}
+                              className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
+                         />
+                         <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">Ocultar Realizadas</span>
+                    </label>
                </div>
 
                {filtered.length === 0 ? (
