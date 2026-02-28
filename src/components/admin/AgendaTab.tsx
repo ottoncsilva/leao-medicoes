@@ -46,6 +46,7 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
      const [filterClient, setFilterClient] = useState<string>('all');
      const [appointmentModal, setAppointmentModal] = useState<{ date: string; time: string; editRequest?: MeasurementRequest } | null>(null);
      const [blockModal, setBlockModal] = useState<{ start: Date; end: Date } | null>(null);
+     const [editBlockModal, setEditBlockModal] = useState<BlockedTime | null>(null);
      const [manualBlockOpen, setManualBlockOpen] = useState(false);
 
      // Parsing dos horários de trabalho das configurações
@@ -168,7 +169,16 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
 
      // Clique em evento → abre edição (admin sempre pode)
      const handleSelectEvent = (event: any) => {
-          if (event.type === 'blocked' || event.type === 'holiday') return;
+          if (event.type === 'holiday') return;
+          if (event.type === 'blocked') {
+               setEditBlockModal({
+                    id: event.id,
+                    title: event.title.replace('🔒 ', ''),
+                    start: event.start.toISOString(),
+                    end: event.end.toISOString()
+               });
+               return;
+          }
           if (event.type === 'request' && event.requestData) {
                setAppointmentModal({
                     date: event.requestData.requestedDate,
@@ -306,11 +316,36 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                          onSuccess={() => { setAppointmentModal(null); onRefresh(); }}
                     />
                )}
-               {(blockModal || manualBlockOpen) && (
+               {/* Modal de Bloqueio (Selecionando espaço no calendário) */}
+               {blockModal && (
                     <BlockTimeModal
                          slot={blockModal}
-                         onClose={() => { setBlockModal(null); setManualBlockOpen(false); }}
-                         onSuccess={() => { setBlockModal(null); setManualBlockOpen(false); onRefresh(); }}
+                         onClose={() => setBlockModal(null)}
+                         onSuccess={() => { setBlockModal(null); onRefresh(); }}
+                    />
+               )}
+
+               {/* Modal de Bloqueio (Editando bloqueio existente) */}
+               {editBlockModal && (
+                    <BlockTimeModal
+                         slot={null}
+                         editBlock={{
+                              id: editBlockModal.id!,
+                              title: editBlockModal.title,
+                              start: editBlockModal.start,
+                              end: editBlockModal.end
+                         }}
+                         onClose={() => setEditBlockModal(null)}
+                         onSuccess={() => { setEditBlockModal(null); onRefresh(); }}
+                    />
+               )}
+
+               {/* Modal de Bloqueio (Manual) */}
+               {manualBlockOpen && (
+                    <BlockTimeModal
+                         slot={null} // Manual block doesn't come from a selected slot
+                         onClose={() => { setManualBlockOpen(false); }}
+                         onSuccess={() => { setManualBlockOpen(false); onRefresh(); }}
                     />
                )}
           </div>

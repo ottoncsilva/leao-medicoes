@@ -6,17 +6,20 @@ import { toast } from 'sonner';
 
 interface Props {
      slot: { start: Date; end: Date } | null;
+     editBlock?: { id: string; title: string; start: string; end: string } | null;
      onClose: () => void;
      onSuccess: () => void;
 }
 
-export default function BlockTimeModal({ slot, onClose, onSuccess }: Props) {
-     const [title, setTitle] = useState('');
+export default function BlockTimeModal({ slot, editBlock, onClose, onSuccess }: Props) {
+     const [title, setTitle] = useState(editBlock?.title || '');
      // Manual form state (when no slot is pre-selected)
-     const [startDate, setStartDate] = useState('');
-     const [startTime, setStartTime] = useState('');
-     const [endDate, setEndDate] = useState('');
-     const [endTime, setEndTime] = useState('');
+     const initialStart = editBlock ? new Date(editBlock.start) : null;
+     const initialEnd = editBlock ? new Date(editBlock.end) : null;
+     const [startDate, setStartDate] = useState(initialStart ? format(initialStart, 'yyyy-MM-dd') : '');
+     const [startTime, setStartTime] = useState(initialStart ? format(initialStart, 'HH:mm') : '');
+     const [endDate, setEndDate] = useState(initialEnd ? format(initialEnd, 'yyyy-MM-dd') : '');
+     const [endTime, setEndTime] = useState(initialEnd ? format(initialEnd, 'HH:mm') : '');
      const [isLoading, setIsLoading] = useState(false);
 
      const handleSubmit = async (e: React.FormEvent) => {
@@ -42,16 +45,42 @@ export default function BlockTimeModal({ slot, onClose, onSuccess }: Props) {
 
           setIsLoading(true);
           try {
-               await blockedTimeService.addBlockedTime({
-                    title,
-                    start: start.toISOString(),
-                    end: end.toISOString(),
-               });
-               toast.success('Horário bloqueado com sucesso!');
+               if (editBlock?.id) {
+                    await blockedTimeService.updateBlockedTime(editBlock.id, {
+                         title,
+                         start: start.toISOString(),
+                         end: end.toISOString()
+                    });
+                    toast.success('Bloqueio atualizado com sucesso!');
+               } else {
+                    await blockedTimeService.addBlockedTime({
+                         title,
+                         start: start.toISOString(),
+                         end: end.toISOString(),
+                    });
+                    toast.success('Horário bloqueado com sucesso!');
+               }
                onClose();
                onSuccess();
           } catch (error) {
-               toast.error('Erro ao bloquear horário. Tente novamente.');
+               toast.error('Erro ao salvar horário. Tente novamente.');
+          } finally {
+               setIsLoading(false);
+          }
+     };
+
+     const handleDelete = async () => {
+          if (!editBlock?.id) return;
+          if (!window.confirm('Tem certeza que deseja remover este bloqueio?')) return;
+
+          setIsLoading(true);
+          try {
+               await blockedTimeService.removeBlockedTime(editBlock.id);
+               toast.success('Bloqueio removido com sucesso!');
+               onClose();
+               onSuccess();
+          } catch (error) {
+               toast.error('Erro ao remover bloqueio.');
           } finally {
                setIsLoading(false);
           }
@@ -62,16 +91,20 @@ export default function BlockTimeModal({ slot, onClose, onSuccess }: Props) {
                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
                     <div className="flex items-center space-x-3 mb-4 text-slate-600">
                          <ShieldAlert className="w-6 h-6" />
-                         <h3 className="text-lg font-bold text-slate-900">Bloquear Horário Pessoal</h3>
+                         <h3 className="text-lg font-bold text-slate-900">
+                              {editBlock ? 'Editar Bloqueio de Horário' : 'Bloquear Horário Pessoal'}
+                         </h3>
                     </div>
-                    {slot ? (
+                    {slot && !editBlock ? (
                          <p className="text-sm text-slate-500 mb-6">
                               Este horário ficará indisponível para os clientes agendarem medições.<br /><br />
                               <strong>Início:</strong> {format(slot.start, "dd/MM 'às' HH:mm")}<br />
                               <strong>Fim:</strong> {format(slot.end, "dd/MM 'às' HH:mm")}
                          </p>
                     ) : (
-                         <p className="text-sm text-slate-500 mb-4">Informe o período que deseja bloquear manualmente.</p>
+                         <p className="text-sm text-slate-500 mb-4">
+                              {editBlock ? 'Altere o motivo ou o período deste bloqueio, ou exclua-o.' : 'Informe o período que deseja bloquear manualmente.'}
+                         </p>
                     )}
                     <form onSubmit={handleSubmit}>
                          <div className="mb-4">
@@ -110,13 +143,22 @@ export default function BlockTimeModal({ slot, onClose, onSuccess }: Props) {
                                    </div>
                               </>
                          )}
-                         <div className="flex justify-end space-x-3 mt-6">
-                              <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium">
-                                   Cancelar
-                              </button>
-                              <button type="submit" disabled={isLoading} className="px-4 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors text-sm font-medium disabled:opacity-50">
-                                   {isLoading ? 'Salvando...' : 'Bloquear Horário'}
-                              </button>
+                         <div className="flex justify-between items-center mt-6">
+                              <div>
+                                   {editBlock && (
+                                        <button type="button" onClick={handleDelete} disabled={isLoading} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors text-sm font-medium disabled:opacity-50">
+                                             Excluir
+                                        </button>
+                                   )}
+                              </div>
+                              <div className="flex space-x-3">
+                                   <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium">
+                                        Cancelar
+                                   </button>
+                                   <button type="submit" disabled={isLoading} className="px-4 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors text-sm font-medium disabled:opacity-50">
+                                        {isLoading ? 'Salvando...' : (editBlock ? 'Salvar' : 'Bloquear Horário')}
+                                   </button>
+                              </div>
                          </div>
                     </form>
                </div>
