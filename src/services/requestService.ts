@@ -35,6 +35,7 @@ export interface MeasurementRequest {
   status: RequestStatus;
   createdAt: Date;
   kmDriven?: number; // Preenchido quando status = completed
+  tollFee?: number; // Preenchido com custos de pedágio quando status = completed
   rescheduleReason?: string; // Preenchido quando status = reschedule_requested
   clientNotifiedDayBefore?: boolean; // Preenchido quando o admin acessa no dia anterior
 }

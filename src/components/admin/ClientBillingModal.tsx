@@ -34,9 +34,10 @@ export const pdfStyles = StyleSheet.create({
      td: { fontSize: 9, color: '#1e293b' },
 
      colDate: { flex: 1.5 },
-     colProject: { flex: 3 },
+     colProject: { flex: 2.2 },
      colEnvs: { flex: 1, textAlign: 'center' },
      colKm: { flex: 1, textAlign: 'center' },
+     colToll: { flex: 1, textAlign: 'center' },
      colValue: { flex: 1.5, textAlign: 'right' },
 
      totalsBox: { marginTop: 24, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, alignSelf: 'flex-end', width: 250, border: '1 solid #e2e8f0' },
@@ -48,7 +49,7 @@ export const pdfStyles = StyleSheet.create({
      footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', color: '#94a3b8', fontSize: 8, borderTop: '1 solid #e2e8f0', paddingTop: 10 }
 });
 
-export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalEnvs, settings }: { client: Client, requests: MeasurementRequest[], month: string, totalValue: number, totalKm: number, totalEnvs: number, settings: GlobalSettings }) => {
+export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalToll, totalEnvs, settings }: { client: Client, requests: MeasurementRequest[], month: string, totalValue: number, totalKm: number, totalToll: number, totalEnvs: number, settings: GlobalSettings }) => {
      const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
      const companyName = settings.companyName || 'Leão Medições';
      const companyCnpj = settings.companyCnpj || '00.000.000/0000-00';
@@ -94,19 +95,15 @@ export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm,
                          <View style={pdfStyles.tableHeader}>
                               <Text style={[pdfStyles.th, pdfStyles.colDate]}>Data Realiz.</Text>
                               <Text style={[pdfStyles.th, pdfStyles.colProject]}>Projeto / Cliente Final</Text>
-                              <Text style={[pdfStyles.th, pdfStyles.colEnvs]}>Ambientes (R$)</Text>
-                              <Text style={[pdfStyles.th, pdfStyles.colKm]}>KM Adicional (R$)</Text>
-                              <Text style={[pdfStyles.th, pdfStyles.colValue]}>Valor Calculado</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colEnvs]}>Ambientes</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colKm]}>Adicional KM</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colToll]}>Pedágio</Text>
+                              <Text style={[pdfStyles.th, pdfStyles.colValue]}>Total Faturado</Text>
                          </View>
                          {requests.map((r, i) => {
                               const itemKmValue = (r.kmDriven || 0) * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice);
-                              let itemBaseValue = 0;
-                              if (client.model === 'por_ambiente') {
-                                   itemBaseValue = r.environmentsCount * client.baseValue;
-                              } else {
-                                   itemBaseValue = client.baseValue; // Simplificado para visualização no relatorio
-                              }
-                              const itemTotal = itemBaseValue + itemKmValue;
+                              const itemBaseValue = client.model === 'por_ambiente' ? r.environmentsCount * client.baseValue : client.baseValue;
+                              const itemTotal = itemBaseValue + itemKmValue + (r.tollFee || 0);
 
                               return (
                                    <View key={i} style={[pdfStyles.tableRow, i === requests.length - 1 ? { borderBottom: 0 } : {}]}>
@@ -114,6 +111,7 @@ export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm,
                                         <Text style={[pdfStyles.td, pdfStyles.colProject]}>{r.projectName || r.contactName || 'Sem nome'}</Text>
                                         <Text style={[pdfStyles.td, pdfStyles.colEnvs]}>{r.environmentsCount} ({formatCurrency(itemBaseValue)})</Text>
                                         <Text style={[pdfStyles.td, pdfStyles.colKm]}>{r.kmDriven || 0} ({formatCurrency(itemKmValue)})</Text>
+                                        <Text style={[pdfStyles.td, pdfStyles.colToll]}>{formatCurrency(r.tollFee || 0)}</Text>
                                         <Text style={[pdfStyles.td, pdfStyles.colValue]}>{formatCurrency(itemTotal)}</Text>
                                    </View>
                               );
@@ -133,6 +131,10 @@ export const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm,
                          <View style={pdfStyles.totalRow}>
                               <Text style={pdfStyles.totalLabel}>Total de KM Adicional:</Text>
                               <Text style={pdfStyles.totalValue}>{totalKm} km ({formatCurrency(totalKm * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice))})</Text>
+                         </View>
+                         <View style={pdfStyles.totalRow}>
+                              <Text style={pdfStyles.totalLabel}>Repasse de Pedágios:</Text>
+                              <Text style={pdfStyles.totalValue}>{formatCurrency(totalToll)}</Text>
                          </View>
                          <View style={[pdfStyles.totalRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #cbd5e1' }]}>
                               <Text style={[pdfStyles.totalLabel, { fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }]}>VALOR DA FATURA:</Text>
@@ -169,6 +171,7 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
 
      const totalEnvs = requests.reduce((a, r) => a + r.environmentsCount, 0);
      const totalKm = requests.reduce((a, r) => a + (r.kmDriven || 0), 0);
+     const totalToll = requests.reduce((a, r) => a + (r.tollFee || 0), 0);
 
      // Ordena do mais antigo para o mais novo
      const sortedRequests = [...requests].sort((a, b) => new Date(`${a.requestedDate}T00:00:00`).getTime() - new Date(`${b.requestedDate}T00:00:00`).getTime());
@@ -185,6 +188,7 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
                          totalValue={totalValue}
                          totalEnvs={totalEnvs}
                          totalKm={totalKm}
+                         totalToll={totalToll}
                          settings={settings}
                     />
                );
@@ -205,8 +209,8 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
      };
 
      return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
-               <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in" onClick={onClose}>
+               <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
                     <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
                          <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-900">
@@ -253,6 +257,7 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
                                                   <th className="px-4 py-3 text-center">Valor Ambiente</th>
                                                   <th className="px-4 py-3 text-center">KM Extra</th>
                                                   <th className="px-4 py-3 text-center">Valor KM</th>
+                                                  <th className="px-4 py-3 text-center">Pedágio</th>
                                                   <th className="px-4 py-3 text-right">Total Calculado</th>
                                              </tr>
                                         </thead>
@@ -277,7 +282,8 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
                                                             <td className="px-4 py-3 text-center text-slate-500">{formatCurrency(itemBaseValue)}</td>
                                                             <td className="px-4 py-3 text-center text-slate-700">{r.kmDriven || 0}</td>
                                                             <td className="px-4 py-3 text-center text-slate-500">{formatCurrency(itemKmValue)}</td>
-                                                            <td className="px-4 py-3 text-right font-medium text-slate-900">{formatCurrency(itemBaseValue + itemKmValue)}</td>
+                                                            <td className="px-4 py-3 text-center text-slate-500">{formatCurrency(r.tollFee || 0)}</td>
+                                                            <td className="px-4 py-3 text-right font-medium text-slate-900">{formatCurrency(itemBaseValue + itemKmValue + (r.tollFee || 0))}</td>
                                                        </tr>
                                                   )
                                              })}

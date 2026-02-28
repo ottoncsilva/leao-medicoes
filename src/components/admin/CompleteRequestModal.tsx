@@ -17,6 +17,7 @@ interface Props {
 
 export default function CompleteRequestModal({ request, settings, clients, onClose, onSuccess }: Props) {
   const [kmInput, setKmInput] = useState('');
+  const [tollInput, setTollInput] = useState('');
   const [environments, setEnvironments] = useState<Environment[]>(
     request.environments || Array(request.environmentsCount || 0).fill(null).map((_, i) => ({
       id: crypto.randomUUID(),
@@ -32,6 +33,7 @@ export default function CompleteRequestModal({ request, settings, clients, onClo
     try {
       await requestService.updateRequestStatus(request.id!, 'completed', {
         kmDriven: Number(kmInput) || 0,
+        tollFee: Number(tollInput.replace(/,/g, '.')) || 0,
         environments
       });
 
@@ -63,18 +65,32 @@ export default function CompleteRequestModal({ request, settings, clients, onClo
         </div>
         <p className="text-sm text-slate-500 mb-6">Para gerar o faturamento correto, informe quantos quilômetros foram rodados nesta visita.</p>
         <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">KM Rodados (Ida e Volta)</label>
-            <input
-              type="number"
-              required
-              min="0"
-              value={kmInput}
-              onChange={e => setKmInput(e.target.value)}
-              className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm"
-              placeholder="Ex: 15"
-              autoFocus
-            />
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">KM Rodados (Total)</label>
+              <input
+                type="number"
+                required
+                min="0"
+                value={kmInput}
+                onChange={e => setKmInput(e.target.value)}
+                className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm"
+                placeholder="Ex: 15"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Pedágio (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={tollInput}
+                onChange={e => setTollInput(e.target.value)}
+                className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm"
+                placeholder="Ex: 12.50"
+              />
+            </div>
           </div>
 
           {environments.length > 0 && (

@@ -144,10 +144,11 @@ export default function AdminDashboard() {
       const reqs = requests.filter(r => r.clientId === client.id && r.status === 'completed' && isWithinInterval(new Date(`${r.requestedDate}T12:00:00`), { start: mStart, end: mEnd }));
       const envs = reqs.reduce((a, r) => a + r.environmentsCount, 0);
       const kms = reqs.reduce((a, r) => a + (r.kmDriven || 0), 0);
+      const tolls = reqs.reduce((a, r) => a + (r.tollFee || 0), 0);
       const kP = client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice;
-      if (client.model === 'por_ambiente') monthTotal += envs * client.baseValue + kms * kP;
-      else if (client.model === 'pacote') { const extra = Math.max(0, envs - (client.limitEnvs || 0)); monthTotal += client.baseValue + extra * (client.baseValue / (client.limitEnvs || 1)) + kms * kP; }
-      else if (client.model === 'avulso') monthTotal += reqs.length * client.baseValue + kms * kP;
+      if (client.model === 'por_ambiente') monthTotal += envs * client.baseValue + kms * kP + tolls;
+      else if (client.model === 'pacote') { const extra = Math.max(0, envs - (client.limitEnvs || 0)); monthTotal += client.baseValue + extra * (client.baseValue / (client.limitEnvs || 1)) + kms * kP + tolls; }
+      else if (client.model === 'avulso') monthTotal += reqs.length * client.baseValue + kms * kP + tolls;
     });
     return { name: format(d, 'MMM', { locale: ptBR }).toUpperCase(), Faturamento: monthTotal };
   });

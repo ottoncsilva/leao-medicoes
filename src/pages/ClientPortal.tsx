@@ -227,12 +227,13 @@ export default function ClientPortal() {
   const myCompletedRequests = myRequests.filter(req => req.status === 'completed' && isWithinInterval(new Date(`${req.requestedDate}T12:00:00`), { start: selectedMonthStart, end: selectedMonthEnd }));
   const totalEnvs = myCompletedRequests.reduce((a, r) => a + r.environmentsCount, 0);
   const totalKm = myCompletedRequests.reduce((a, r) => a + (r.kmDriven || 0), 0);
+  const totalToll = myCompletedRequests.reduce((a, r) => a + (r.tollFee || 0), 0);
   let totalValue = 0;
   if (clientData) {
     const kmPrice = clientData.kmValue > 0 ? clientData.kmValue : settings.defaultKmPrice;
-    if (clientData.model === 'por_ambiente') totalValue = totalEnvs * clientData.baseValue + totalKm * kmPrice;
-    else if (clientData.model === 'pacote') { const extra = Math.max(0, totalEnvs - (clientData.limitEnvs || 0)); totalValue = clientData.baseValue + extra * (clientData.baseValue / (clientData.limitEnvs || 1)) + totalKm * kmPrice; }
-    else if (clientData.model === 'avulso') totalValue = myCompletedRequests.length * clientData.baseValue + totalKm * kmPrice;
+    if (clientData.model === 'por_ambiente') totalValue = totalEnvs * clientData.baseValue + totalKm * kmPrice + totalToll;
+    else if (clientData.model === 'pacote') { const extra = Math.max(0, totalEnvs - (clientData.limitEnvs || 0)); totalValue = clientData.baseValue + extra * (clientData.baseValue / (clientData.limitEnvs || 1)) + totalKm * kmPrice + totalToll; }
+    else if (clientData.model === 'avulso') totalValue = myCompletedRequests.length * clientData.baseValue + totalKm * kmPrice + totalToll;
   }
   const isPaid = billingStatuses.find(b => b.id === `${clientData?.id}_${billingMonth}`)?.status === 'paid';
   // Clique em evento no calendário do portal
@@ -286,7 +287,7 @@ export default function ClientPortal() {
   const downloadFaturaMensal = async () => {
     if (!clientData) return;
     try {
-      const blob = await pdf(<ClientBillingPDF client={clientData} requests={myCompletedRequests} month={format(selectedMonthStart, 'MMMM/yyyy', { locale: ptBR })} totalValue={totalValue} totalKm={totalKm} totalEnvs={totalEnvs} settings={settings} />).toBlob();
+      const blob = await pdf(<ClientBillingPDF client={clientData} requests={myCompletedRequests} month={format(selectedMonthStart, 'MMMM/yyyy', { locale: ptBR })} totalValue={totalValue} totalKm={totalKm} totalToll={totalToll} totalEnvs={totalEnvs} settings={settings} />).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -611,10 +612,12 @@ export default function ClientPortal() {
                         <th className="px-6 py-4 text-center">Valor Medição</th>
                         <th className="px-6 py-4 text-center">KM Extra</th>
                         <th className="px-6 py-4 text-center">Valor KM</th>
+                        <th className="px-6 py-4 text-center">Pedágio</th>
+                        <th className="px-6 py-4 text-center">Calculado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
-                      {myCompletedRequests.length === 0 ? <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => {
+                      {myCompletedRequests.length === 0 ? <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => {
                         const itemKmValue = (req.kmDriven || 0) * (clientData?.kmValue || 0 > 0 ? clientData!.kmValue : settings.defaultKmPrice);
                         const itemBaseValue = clientData?.model === 'por_ambiente' ? req.environmentsCount * (clientData?.baseValue || 0) : (clientData?.baseValue || 0);
 
@@ -626,6 +629,8 @@ export default function ClientPortal() {
                             <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(itemBaseValue)}</td>
                             <td className="px-6 py-4 text-center text-slate-600 font-medium bg-slate-50 rounded-lg">{req.kmDriven || 0} km</td>
                             <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(itemKmValue)}</td>
+                            <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(req.tollFee || 0)}</td>
+                            <td className="px-6 py-4 text-center text-blue-900 font-bold">{formatCurrency((req.tollFee || 0) + itemKmValue + itemBaseValue)}</td>
                           </tr>
                         )
                       })}
