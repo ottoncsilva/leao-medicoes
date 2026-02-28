@@ -99,9 +99,10 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
           if (event.status === 'completed') bg = '#059669';
           if (event.status === 'rejected') bg = '#dc2626';
           if (event.status === 'reschedule_requested') bg = '#2563eb';
-          if (event.type === 'blocked') bg = '#78716c';
+          if (event.type === 'blocked') bg = '#64748b'; // slate-500
           if (event.type === 'holiday') bg = '#ef4444';
           return {
+               className: event.type === 'request' ? 'shadow-sm hover:shadow-md transition-all' : '',
                style: {
                     backgroundColor: bg,
                     borderRadius: '6px',
@@ -130,18 +131,14 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
 
           if (isNonWorkingWeekend) {
                return {
-                    style: {
-                         backgroundColor: '#e7e5e4',
-                         backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)',
-                    }
+                    className: 'hatched-bg',
+                    style: { backgroundColor: '#f1f5f9' } // slate-100 fallback
                };
           }
           if (isOffHours) {
                return {
-                    style: {
-                         backgroundColor: '#f5f5f4',
-                         backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(0,0,0,0.025) 4px, rgba(0,0,0,0.025) 8px)',
-                    }
+                    className: 'hatched-bg opacity-50',
+                    style: { backgroundColor: '#f8fafc' } // slate-50 fallback
                };
           }
           return {};
@@ -153,7 +150,7 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
           const isNonWorkingSat = dow === 6 && !settings.workOnSaturdays;
           const isNonWorkingSun = dow === 0 && !settings.workOnSundays;
           if (isNonWorkingSat || isNonWorkingSun) {
-               return { style: { backgroundColor: '#e7e5e4' } };
+               return { className: 'hatched-bg', style: { backgroundColor: '#f1f5f9' } };
           }
           return {};
      };
@@ -178,19 +175,23 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
           }
      };
 
-     const onEventDrop = async ({ event, start, end }: any) => {
+     const onEventDrop = async ({ event, start }: any) => {
           try {
                if (event.type === 'blocked') {
-                    await blockedTimeService.updateBlockedTime(event.id, { start: (start as Date).toISOString(), end: (end as Date).toISOString() });
+                    // Para bloqueios, mantemos a lógica de end para preservar a duração com base na interface gráfica
+                    const diffMs = event.end.getTime() - event.start.getTime();
+                    const novaEnd = new Date(start.getTime() + diffMs);
+                    await blockedTimeService.updateBlockedTime(event.id, { start: start.toISOString(), end: novaEnd.toISOString() });
                } else if (event.type === 'request') {
                     const { requestService } = await import('../../services/requestService');
+                    // Preserva a duração original em minutos, apenas altera a data e a hora
                     await requestService.updateRequestStatus(event.id, event.status, {
                          requestedDate: format(start as Date, 'yyyy-MM-dd'),
                          requestedTime: format(start as Date, 'HH:mm'),
-                         estimatedMinutes: Math.round(((end as Date).getTime() - (start as Date).getTime()) / 60000),
+                         estimatedMinutes: event.requestData?.estimatedMinutes || 60,
                     });
                }
-               toast.success('Evento atualizado!');
+               toast.success('Evento movido!');
                onRefresh();
           } catch {
                toast.error('Erro ao mover evento.');
@@ -217,25 +218,25 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
      };
 
      return (
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-stone-200 h-[780px] flex flex-col">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 h-[780px] flex flex-col">
                {/* Toolbar */}
                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div className="flex flex-wrap items-center gap-3 text-xs">
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />Pendente</span>
-                         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-900 inline-block" />Confirmado</span>
+                         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-950 inline-block" />Confirmado</span>
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />Alt. Solicitada</span>
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />Realizado</span>
-                         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-500 inline-block" />Bloqueio</span>
+                         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block" />Bloqueio</span>
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Feriado</span>
-                         <span className="flex items-center gap-1.5 text-stone-400 border-l border-stone-200 pl-3">
-                              <span className="w-10 h-3 rounded-sm inline-block" style={{ backgroundImage: 'repeating-linear-gradient(135deg, #f5f5f4, #f5f5f4 4px, #e8e8e7 4px, #e8e8e7 8px)' }} />
+                         <span className="flex items-center gap-1.5 text-slate-400 border-l border-slate-200 pl-3">
+                              <span className="w-10 h-3 rounded-sm inline-block hatched-bg bg-slate-100" />
                               Fora do expediente
                          </span>
                     </div>
                     <div className="flex items-center gap-2">
                          <button
                               onClick={() => setManualBlockOpen(true)}
-                              className="flex items-center px-3 py-2 bg-stone-100 text-stone-700 rounded-xl hover:bg-stone-200 transition-colors text-sm font-medium"
+                              className="flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-medium"
                          >
                               <Lock className="w-4 h-4 mr-1.5" /> Bloquear
                          </button>

@@ -100,21 +100,21 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row relative">
       <Toaster position="top-right" richColors />
 
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-stone-900 text-stone-300 flex flex-col shrink-0">
+      <aside className="w-full md:w-64 bg-blue-950 text-stone-300 flex flex-col shrink-0">
         <div className="p-6">
           <h1 className="text-xl font-bold text-white">Leão Medições</h1>
-          <p className="text-xs text-stone-500 mt-1">Painel do Gestor</p>
+          <p className="text-xs text-slate-500 mt-1">Painel do Gestor</p>
         </div>
         <nav className="flex-1 px-4 space-y-1 mt-2 flex md:flex-col overflow-x-auto md:overflow-visible pb-4 md:pb-0">
           {NAV_ITEMS.map(({ key, label, Icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === key ? 'bg-stone-800 text-white' : 'hover:bg-stone-800 hover:text-white'}`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === key ? 'bg-blue-900 text-white' : 'hover:bg-blue-900 hover:text-white'}`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{label}</span>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
           ))}
         </nav>
         <div className="p-4 border-t border-stone-800 hidden md:block">
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-stone-800 hover:text-white transition-colors">
+          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-blue-900 hover:text-white transition-colors">
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sair</span>
           </button>
@@ -132,13 +132,13 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         <header className="mb-8">
-          <h2 className="text-2xl font-bold text-stone-900">{TAB_TITLES[activeTab].title}</h2>
-          <p className="text-stone-500 mt-1">{TAB_TITLES[activeTab].sub}</p>
+          <h2 className="text-2xl font-bold text-slate-900">{TAB_TITLES[activeTab].title}</h2>
+          <p className="text-slate-500 mt-1">{TAB_TITLES[activeTab].sub}</p>
         </header>
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-950"></div>
           </div>
         ) : (
           <>
@@ -146,23 +146,23 @@ export default function AdminDashboard() {
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                    <p className="text-sm font-medium text-stone-500 mb-1">Faturamento (Mês Atual)</p>
-                    <h3 className="text-3xl font-bold text-stone-900">{formatCurrency(chartData[5].Faturamento)}</h3>
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <p className="text-sm font-medium text-slate-500 mb-1">Faturamento (Mês Atual)</p>
+                    <h3 className="text-3xl font-bold text-slate-900">{formatCurrency(chartData[5].Faturamento)}</h3>
                   </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                    <p className="text-sm font-medium text-stone-500 mb-1">Medições Realizadas (Mês Atual)</p>
-                    <h3 className="text-3xl font-bold text-stone-900">
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <p className="text-sm font-medium text-slate-500 mb-1">Medições Realizadas (Mês Atual)</p>
+                    <h3 className="text-3xl font-bold text-slate-900">
                       {requests.filter(r => r.status === 'completed' && isWithinInterval(new Date(`${r.requestedDate}T12:00:00`), { start: startOfMonth(new Date()), end: endOfMonth(new Date()) })).length}
                     </h3>
                   </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                    <p className="text-sm font-medium text-stone-500 mb-1">Aguardando Aprovação</p>
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <p className="text-sm font-medium text-slate-500 mb-1">Aguardando Aprovação</p>
                     <h3 className="text-3xl font-bold text-amber-600">{requests.filter(r => r.status === 'pending').length}</h3>
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                  <h3 className="text-lg font-semibold text-stone-900 mb-6">Faturamento — Últimos 6 Meses</h3>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-6">Faturamento — Últimos 6 Meses</h3>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData}>

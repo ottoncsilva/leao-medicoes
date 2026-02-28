@@ -45,28 +45,28 @@ export default function RescheduleModal({ request, settings, clients, onClose, o
      };
 
      return (
-          <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
                     <div className="flex items-center space-x-3 mb-4 text-blue-600">
                          <MessageSquare className="w-6 h-6" />
-                         <h3 className="text-lg font-bold text-stone-900">Pedir Alteração de Horário</h3>
+                         <h3 className="text-lg font-bold text-slate-900">Pedir Alteração de Horário</h3>
                     </div>
-                    <p className="text-sm text-stone-500 mb-6">Envie uma mensagem para a loja sugerindo um novo horário. O cliente será notificado via WhatsApp.</p>
+                    <p className="text-sm text-slate-500 mb-6">Envie uma mensagem para a loja sugerindo um novo horário. O cliente será notificado via WhatsApp.</p>
                     <form onSubmit={handleSubmit}>
                          <div className="mb-6">
-                              <label className="block text-sm font-medium text-stone-700 mb-2">Mensagem para a Loja</label>
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Mensagem para a Loja</label>
                               <textarea
                                    required
                                    rows={4}
                                    value={message}
                                    onChange={e => setMessage(e.target.value)}
-                                   className="w-full px-3 py-3 border border-stone-300 rounded-xl focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                                   className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
                                    placeholder="Ex: Olá! Infelizmente neste horário estou em outra obra. Podemos alterar para as 15h?"
                                    autoFocus
                               />
                          </div>
                          <div className="flex justify-end space-x-3">
-                              <button type="button" onClick={onClose} className="px-4 py-2 border border-stone-300 text-stone-700 rounded-xl hover:bg-stone-50 transition-colors text-sm font-medium">
+                              <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium">
                                    Cancelar
                               </button>
                               <button type="submit" disabled={isLoading} className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50">

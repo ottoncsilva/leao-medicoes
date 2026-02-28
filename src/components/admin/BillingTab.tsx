@@ -154,25 +154,25 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
      return (
           <div className="space-y-6">
                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-stone-900">Resumo do Mês</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">Resumo do Mês</h3>
                     <div className="flex items-center gap-3">
-                         <input type="month" value={billingMonth} onChange={e => onMonthChange(e.target.value)} className="px-4 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm" />
-                         <button onClick={handleExportPDF} className="flex items-center px-4 py-2 bg-stone-900 text-white rounded-xl hover:bg-stone-800 text-sm font-medium gap-2">
+                         <input type="month" value={billingMonth} onChange={e => onMonthChange(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm" />
+                         <button onClick={handleExportPDF} className="flex items-center px-4 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 text-sm font-medium gap-2">
                               <FileDown className="w-4 h-4" /> Exportar PDF
                          </button>
                     </div>
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">Total a Receber</p><h3 className="text-2xl font-bold text-stone-900">{formatCurrency(totalBilling)}</h3></div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">Ambientes Medidos</p><h3 className="text-2xl font-bold text-stone-900">{totalEnvsMonth}</h3></div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">KM Rodados</p><h3 className="text-2xl font-bold text-stone-900">{totalKmMonth} km</h3></div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Total a Receber</p><h3 className="text-2xl font-bold text-slate-900">{formatCurrency(totalBilling)}</h3></div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Ambientes Medidos</p><h3 className="text-2xl font-bold text-slate-900">{totalEnvsMonth}</h3></div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">KM Rodados</p><h3 className="text-2xl font-bold text-slate-900">{totalKmMonth} km</h3></div>
                </div>
 
-               <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="overflow-x-auto">
                          <table className="w-full text-sm text-left">
-                              <thead className="bg-stone-50 text-stone-600 font-medium border-b border-stone-200">
+                              <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
                                    <tr>
                                         <th className="px-6 py-4">Cliente / Loja</th>
                                         <th className="px-6 py-4 text-center">Medições</th>
@@ -184,19 +184,19 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                               </thead>
                               <tbody className="divide-y divide-stone-200">
                                    {billingData.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-6 py-8 text-center text-stone-500">Nenhuma medição realizada neste mês.</td></tr>
+                                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr>
                                    ) : billingData.map(bill => (
-                                        <tr key={bill.clientId} className="hover:bg-stone-50 transition-colors">
-                                             <td className="px-6 py-4 font-medium text-stone-900">{bill.clientName}</td>
-                                             <td className="px-6 py-4 text-center text-stone-600">{bill.requestsCount}</td>
-                                             <td className="px-6 py-4 text-center text-stone-600">{bill.totalEnvs}</td>
-                                             <td className="px-6 py-4 text-center text-stone-600">{bill.totalKm}</td>
-                                             <td className="px-6 py-4 text-right font-medium text-stone-900">{formatCurrency(bill.totalValue)}</td>
+                                        <tr key={bill.clientId} className="hover:bg-slate-50 transition-colors">
+                                             <td className="px-6 py-4 font-medium text-slate-900">{bill.clientName}</td>
+                                             <td className="px-6 py-4 text-center text-slate-600">{bill.requestsCount}</td>
+                                             <td className="px-6 py-4 text-center text-slate-600">{bill.totalEnvs}</td>
+                                             <td className="px-6 py-4 text-center text-slate-600">{bill.totalKm}</td>
+                                             <td className="px-6 py-4 text-right font-medium text-slate-900">{formatCurrency(bill.totalValue)}</td>
                                              <td className="px-6 py-4 text-center">
                                                   {bill.isPaid ? (
                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"><Check className="w-3 h-3 mr-1" />Pago</span>
                                                   ) : (
-                                                       <button onClick={() => handleMarkAsPaid(bill.clientId)} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-stone-900 text-white hover:bg-stone-800 transition-colors">Marcar como Pago</button>
+                                                       <button onClick={() => handleMarkAsPaid(bill.clientId)} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-950 text-white hover:bg-blue-900 transition-colors">Marcar como Pago</button>
                                                   )}
                                              </td>
                                         </tr>

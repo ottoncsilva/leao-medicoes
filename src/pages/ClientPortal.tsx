@@ -181,7 +181,7 @@ export default function ClientPortal() {
 
   const handleLogout = async () => { await signOut(auth); navigate('/login'); };
 
-  if (isAuthLoading) return <div className="min-h-screen bg-stone-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div></div>;
+  if (isAuthLoading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-950"></div></div>;
 
   // Calendar events
   const currentYear = calendarDate.getFullYear();
@@ -206,8 +206,8 @@ export default function ClientPortal() {
   const eventStyleGetter = (event: any) => {
     if (event.id === 'preview') return { style: { backgroundColor: '#059669', borderRadius: '6px', opacity: 1, border: '2px dashed white' } };
     if (event.type === 'holiday') return { style: { backgroundColor: '#ef4444', borderRadius: '6px', opacity: 0.9, color: 'white' } };
-    if (event.isMine) return { style: { backgroundColor: '#1c1917', borderRadius: '6px', opacity: 0.9 } };
-    return { style: { backgroundColor: '#d6d3d1', borderRadius: '6px', opacity: 0.7, color: '#44403c' } };
+    if (event.isMine) return { className: 'shadow-sm', style: { backgroundColor: '#1e3a8a', borderRadius: '6px', opacity: 0.9 } }; // blue-900
+    return { style: { backgroundColor: '#94a3b8', borderRadius: '6px', opacity: 0.7, color: '#f8fafc' } }; // slate-400
   };
 
   const myRequests = requests.filter(r => r.clientId === clientData?.id).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -250,44 +250,44 @@ export default function ClientPortal() {
   };
 
   // Visual de indisponibilidade no portal
-  const [workStartHour] = (settings.workStartTime || '08:00').split(':').map(Number);
-  const [workEndHour] = (settings.workEndTime || '18:00').split(':').map(Number);
+  const [workStartHour, workStartMin] = (settings.workStartTime || '08:00').split(':').map(Number);
+  const [workEndHour, workEndMin] = (settings.workEndTime || '18:00').split(':').map(Number);
   const portalSlotPropGetter = (slotDate: Date) => {
     const totalMin = slotDate.getHours() * 60 + slotDate.getMinutes();
     const isOffHours = totalMin < workStartHour * 60 || totalMin >= workEndHour * 60;
     const dow = slotDate.getDay();
     const isNonWorkingDay = (dow === 6 && !settings.workOnSaturdays) || (dow === 0 && !settings.workOnSundays);
-    if (isNonWorkingDay) return { style: { backgroundColor: '#e7e5e4', backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)' } };
-    if (isOffHours) return { style: { backgroundColor: '#f5f5f4' } };
+    if (isNonWorkingDay) return { className: 'hatched-bg', style: { backgroundColor: '#f1f5f9' } };
+    if (isOffHours) return { className: 'hatched-bg opacity-50', style: { backgroundColor: '#f8fafc' } };
     return {};
   };
   const portalDayPropGetter = (dayDate: Date) => {
     const dow = dayDate.getDay();
-    if ((dow === 6 && !settings.workOnSaturdays) || (dow === 0 && !settings.workOnSundays)) return { style: { backgroundColor: '#e7e5e4' } };
+    if ((dow === 6 && !settings.workOnSaturdays) || (dow === 0 && !settings.workOnSundays)) return { className: 'hatched-bg', style: { backgroundColor: '#f1f5f9' } };
     return {};
   };
 
   const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  const inputClass = "w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm";
-  const labelClass = "block text-sm font-medium text-stone-700 mb-2";
+  const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm";
+  const labelClass = "block text-sm font-medium text-slate-700 mb-2";
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <Toaster position="top-right" richColors />
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-r border-stone-200 flex flex-col shrink-0">
-        <div className="p-6 border-b border-stone-200">
-          <h1 className="text-xl font-bold text-stone-900">Leão Medições</h1>
-          <p className="text-xs text-stone-500 mt-1">Portal do Cliente</p>
-          <div className="mt-4 inline-block px-3 py-1 bg-stone-100 text-stone-800 text-xs font-medium rounded-full">{clientData?.name}</div>
+      <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+        <div className="p-6 border-b border-slate-200">
+          <h1 className="text-xl font-bold text-slate-900">Leão Medições</h1>
+          <p className="text-xs text-slate-500 mt-1">Portal do Cliente</p>
+          <div className="mt-4 inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-medium rounded-full">{clientData?.name}</div>
         </div>
         <nav className="flex-1 p-4 space-y-2 flex md:flex-col overflow-x-auto md:overflow-visible">
-          <button onClick={() => { setActiveTab('new_request'); setStep(1); }} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'new_request' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}><Plus className="w-5 h-5" /><span className="font-medium">Nova Medição</span></button>
-          <button onClick={() => setActiveTab('history')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'history' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}><LayoutDashboard className="w-5 h-5" /><span className="font-medium">Minhas Medições</span></button>
-          <button onClick={() => setActiveTab('billing')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'billing' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'}`}><FileText className="w-5 h-5" /><span className="font-medium">Meu Faturamento</span></button>
+          <button onClick={() => { setActiveTab('new_request'); setStep(1); }} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'new_request' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><Plus className="w-5 h-5" /><span className="font-medium">Nova Medição</span></button>
+          <button onClick={() => setActiveTab('history')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'history' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><LayoutDashboard className="w-5 h-5" /><span className="font-medium">Minhas Medições</span></button>
+          <button onClick={() => setActiveTab('billing')} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors shrink-0 md:w-full ${activeTab === 'billing' ? 'bg-blue-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}><FileText className="w-5 h-5" /><span className="font-medium">Meu Faturamento</span></button>
         </nav>
-        <div className="p-4 border-t border-stone-200">
-          <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors"><LogOut className="w-5 h-5" /><span className="font-medium">Sair</span></button>
+        <div className="p-4 border-t border-slate-200">
+          <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"><LogOut className="w-5 h-5" /><span className="font-medium">Sair</span></button>
         </div>
       </aside>
 
@@ -297,31 +297,31 @@ export default function ClientPortal() {
           <div className="max-w-4xl mx-auto">
             <header className="mb-8 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-stone-900">
+                <h2 className="text-2xl font-bold text-slate-900">
                   {editingRequest ? '✏️ Editar Solicitação' : 'Agendar Nova Medição'}
                 </h2>
-                <p className="text-stone-500 mt-1">
+                <p className="text-slate-500 mt-1">
                   {editingRequest ? 'Altere os dados e/ou o horário da sua solicitação pendente.' : 'Preencha os dados e escolha um horário na agenda.'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 {editingRequest && (
-                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironments(1); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-stone-500 hover:text-stone-900 border border-stone-300 px-3 py-1.5 rounded-lg transition-colors">
+                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironments(1); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-slate-500 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors">
                     Cancelar Edição
                   </button>
                 )}
-                <div className="hidden md:flex items-center space-x-2 text-sm text-stone-500">
-                  <span className={step >= 1 ? 'text-stone-900 font-medium' : ''}>Detalhes</span>
+                <div className="hidden md:flex items-center space-x-2 text-sm text-slate-500">
+                  <span className={step >= 1 ? 'text-slate-900 font-medium' : ''}>Detalhes</span>
                   <ChevronRight className="w-4 h-4" />
-                  <span className={step >= 2 ? 'text-stone-900 font-medium' : ''}>Agenda</span>
+                  <span className={step >= 2 ? 'text-slate-900 font-medium' : ''}>Agenda</span>
                 </div>
               </div>
             </header>
 
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 space-y-6">
-                  <h2 className="text-xl font-semibold text-stone-900">Detalhes do Serviço</h2>
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                  <h2 className="text-xl font-semibold text-slate-900">Detalhes do Serviço</h2>
 
                   {/* Projeto e Ambientes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -332,9 +332,9 @@ export default function ClientPortal() {
                     <div>
                       <label className={labelClass}>Quantidade de Ambientes *</label>
                       <div className="flex items-center space-x-3">
-                        <button type="button" onClick={() => setEnvironments(Math.max(1, environments - 1))} className="w-10 h-10 rounded-xl border border-stone-300 flex items-center justify-center text-stone-600 hover:bg-stone-50 font-bold text-lg">−</button>
-                        <input type="number" value={environments} onChange={e => setEnvironments(parseInt(e.target.value) || 1)} className="flex-1 px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm text-center font-medium" min="1" />
-                        <button type="button" onClick={() => setEnvironments(environments + 1)} className="w-10 h-10 rounded-xl border border-stone-300 flex items-center justify-center text-stone-600 hover:bg-stone-50 font-bold text-lg">+</button>
+                        <button type="button" onClick={() => setEnvironments(Math.max(1, environments - 1))} className="w-10 h-10 rounded-xl border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">−</button>
+                        <input type="number" value={environments} onChange={e => setEnvironments(parseInt(e.target.value) || 1)} className="flex-1 px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm text-center font-medium" min="1" />
+                        <button type="button" onClick={() => setEnvironments(environments + 1)} className="w-10 h-10 rounded-xl border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-50 font-bold text-lg">+</button>
                       </div>
 
                     </div>
@@ -342,12 +342,12 @@ export default function ClientPortal() {
 
                   {/* Endereço */}
                   <div>
-                    <div className="flex items-center space-x-2 mb-4"><MapPin className="w-4 h-4 text-stone-500" /><h3 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Endereço da Obra</h3></div>
+                    <div className="flex items-center space-x-2 mb-4"><MapPin className="w-4 h-4 text-slate-500" /><h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Endereço da Obra</h3></div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="relative">
                         <label className={labelClass}>CEP *</label>
                         <input type="text" value={address.zipCode} onChange={handleCepChange} className={inputClass} placeholder="00000-000" maxLength={9} />
-                        {isLoadingCep && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-9 text-stone-400" />}
+                        {isLoadingCep && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-9 text-slate-400" />}
                       </div>
                       <div className="md:col-span-2"><label className={labelClass}>Rua / Logradouro</label><input type="text" value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} className={inputClass} placeholder="Auto-preenchido pelo CEP" /></div>
                       <div><label className={labelClass}>Número *</label><input required type="text" value={address.number} onChange={e => setAddress(p => ({ ...p, number: e.target.value }))} className={inputClass} placeholder="123" /></div>
@@ -361,7 +361,7 @@ export default function ClientPortal() {
 
                   {/* Contato */}
                   <div>
-                    <div className="flex items-center space-x-2 mb-4"><User className="w-4 h-4 text-stone-500" /><h3 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Contato no Local</h3></div>
+                    <div className="flex items-center space-x-2 mb-4"><User className="w-4 h-4 text-slate-500" /><h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Contato no Local</h3></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div><label className={labelClass}><User className="w-3 h-3 inline mr-1" />Nome do Contato</label><input type="text" value={address.contactName} onChange={e => setAddress(p => ({ ...p, contactName: e.target.value }))} className={inputClass} placeholder="Nome da pessoa no local" /></div>
                       <div><label className={labelClass}><Phone className="w-3 h-3 inline mr-1" />Telefone do Contato</label><input type="text" value={address.contactPhone} onChange={e => setAddress(p => ({ ...p, contactPhone: e.target.value }))} className={inputClass} placeholder="(11) 99999-9999" /></div>
@@ -369,7 +369,7 @@ export default function ClientPortal() {
                   </div>
                 </div>
 
-                <button onClick={() => setStep(2)} disabled={environments < 1} className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-stone-900 hover:bg-stone-800 disabled:opacity-50 transition-colors">
+                <button onClick={() => setStep(2)} disabled={environments < 1} className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-950 hover:bg-blue-900 disabled:opacity-50 transition-colors">
                   Ver Agenda e Escolher Horário <ChevronRight className="w-4 h-4 ml-2 inline" />
                 </button>
               </div>
@@ -377,10 +377,10 @@ export default function ClientPortal() {
 
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex items-center justify-between mb-6">
-                    <div><h2 className="text-xl font-semibold text-stone-900">Escolha o Horário</h2><p className="text-sm text-stone-500 mt-1">Clique em um espaço vazio para agendar ({estimatedTime} min).</p></div>
-                    <button onClick={() => setStep(1)} className="flex items-center text-sm text-stone-500 hover:text-stone-900 font-medium"><ArrowLeft className="w-4 h-4 mr-1" />Voltar</button>
+                    <div><h2 className="text-xl font-semibold text-slate-900">Escolha o Horário</h2><p className="text-sm text-slate-500 mt-1">Clique em um espaço vazio para agendar ({estimatedTime} min).</p></div>
+                    <button onClick={() => setStep(1)} className="flex items-center text-sm text-slate-500 hover:text-slate-900 font-medium"><ArrowLeft className="w-4 h-4 mr-1" />Voltar</button>
                   </div>
                   <div className="h-[600px] mb-6">
                     <Calendar
@@ -402,8 +402,8 @@ export default function ClientPortal() {
                       onSelectEvent={handleSelectEvent}
                       step={30}
                       timeslots={1}
-                      min={new Date(0, 0, 0, Math.max(0, workStartHour - 1), 0, 0)}
-                      max={new Date(0, 0, 0, Math.min(23, workEndHour + 1), 0, 0)}
+                      min={new Date(0, 0, 0, workStartHour, workStartMin || 0, 0)}
+                      max={new Date(0, 0, 0, workEndHour, workEndMin || 0, 0)}
                       messages={PT_BR_MESSAGES}
                     />
                   </div>
@@ -423,13 +423,13 @@ export default function ClientPortal() {
             )}
 
             {step === 3 && (
-              <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-200 text-center animate-in zoom-in-95 duration-500">
+              <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center animate-in zoom-in-95 duration-500">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8 text-emerald-600" /></div>
-                <h2 className="text-2xl font-bold text-stone-900 mb-2">Solicitação Enviada!</h2>
-                <p className="text-stone-600 mb-6">Sua solicitação para <strong>{format(selectedSlot!.start, 'dd/MM/yyyy')}</strong> às <strong>{format(selectedSlot!.start, 'HH:mm')}</strong> foi enviada para aprovação.</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Solicitação Enviada!</h2>
+                <p className="text-slate-600 mb-6">Sua solicitação para <strong>{format(selectedSlot!.start, 'dd/MM/yyyy')}</strong> às <strong>{format(selectedSlot!.start, 'HH:mm')}</strong> foi enviada para aprovação.</p>
                 <div className="flex justify-center space-x-4">
-                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironments(1); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="px-6 py-2 border border-stone-300 text-stone-700 rounded-xl hover:bg-stone-50 transition-colors font-medium">Nova Solicitação</button>
-                  <button onClick={() => { setActiveTab('history'); setStep(1); }} className="px-6 py-2 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors font-medium">Ver Minhas Medições</button>
+                  <button onClick={() => { setStep(1); setProjectName(''); setEnvironments(1); setSelectedSlot(null); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="px-6 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium">Nova Solicitação</button>
+                  <button onClick={() => { setActiveTab('history'); setStep(1); }} className="px-6 py-2 bg-blue-950 text-white rounded-xl hover:bg-blue-900 transition-colors font-medium">Ver Minhas Medições</button>
                 </div>
               </div>
             )}
@@ -439,23 +439,23 @@ export default function ClientPortal() {
         {/* HISTÓRICO */}
         {activeTab === 'history' && (
           <div className="max-w-5xl mx-auto">
-            <header className="mb-8"><h2 className="text-2xl font-bold text-stone-900">Minhas Medições</h2><p className="text-stone-500 mt-1">Acompanhe o status de todas as suas solicitações.</p></header>
+            <header className="mb-8"><h2 className="text-2xl font-bold text-slate-900">Minhas Medições</h2><p className="text-slate-500 mt-1">Acompanhe o status de todas as suas solicitações.</p></header>
             <div className="space-y-4">
               {myRequests.length === 0 ? (
-                <div className="bg-white p-8 rounded-2xl text-center border border-stone-200 text-stone-500">Você ainda não fez nenhuma solicitação de medição.</div>
+                <div className="bg-white p-8 rounded-2xl text-center border border-slate-200 text-slate-500">Você ainda não fez nenhuma solicitação de medição.</div>
               ) : myRequests.map(req => (
-                <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-stone-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')} às {req.requestedTime}</h3>
-                    {req.projectName && <span className="text-sm text-stone-500">— {req.projectName}</span>}
+                    <h3 className="text-lg font-semibold text-slate-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')} às {req.requestedTime}</h3>
+                    {req.projectName && <span className="text-sm text-slate-500">— {req.projectName}</span>}
                     {req.status === 'pending' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Aguardando</span>}
-                    {req.status === 'confirmed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-800">Agendada</span>}
+                    {req.status === 'confirmed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">Agendada</span>}
                     {req.status === 'completed' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Realizada</span>}
                     {req.status === 'reschedule_requested' && <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Alteração Solicitada</span>}
                   </div>
-                  <p className="text-sm text-stone-600 flex items-center mt-1"><MapPin className="w-4 h-4 mr-1.5 text-stone-400 shrink-0" />{req.address}</p>
-                  {req.contactName && <p className="text-sm text-stone-500 mt-1">Contato: {req.contactName} {req.contactPhone && `— ${req.contactPhone}`}</p>}
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-stone-500">
+                  <p className="text-sm text-slate-600 flex items-center mt-1"><MapPin className="w-4 h-4 mr-1.5 text-slate-400 shrink-0" />{req.address}</p>
+                  {req.contactName && <p className="text-sm text-slate-500 mt-1">Contato: {req.contactName} {req.contactPhone && `— ${req.contactPhone}`}</p>}
+                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
                     <span>{req.environmentsCount} ambientes</span>
                     <span>{req.estimatedMinutes} min</span>
                   </div>
@@ -470,20 +470,20 @@ export default function ClientPortal() {
         {activeTab === 'billing' && (
           <div className="max-w-5xl mx-auto">
             <header className="mb-8 flex items-center justify-between">
-              <div><h2 className="text-2xl font-bold text-stone-900">Meu Faturamento</h2><p className="text-stone-500 mt-1">Consulte os valores das medições realizadas.</p></div>
-              <input type="month" value={billingMonth} onChange={e => setBillingMonth(e.target.value)} className="px-4 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm" />
+              <div><h2 className="text-2xl font-bold text-slate-900">Meu Faturamento</h2><p className="text-slate-500 mt-1">Consulte os valores das medições realizadas.</p></div>
+              <input type="month" value={billingMonth} onChange={e => setBillingMonth(e.target.value)} className="px-4 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm" />
             </header>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">Total do Mês</p><h3 className="text-3xl font-bold text-stone-900">{formatCurrency(totalValue)}</h3></div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">Status de Pagamento</p>{isPaid ? <h3 className="text-2xl font-bold text-emerald-600 flex items-center"><CheckCircle2 className="w-6 h-6 mr-2" />Pago</h3> : <h3 className="text-2xl font-bold text-amber-600">Em Aberto</h3>}</div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200"><p className="text-sm font-medium text-stone-500 mb-1">Medições Realizadas</p><h3 className="text-3xl font-bold text-stone-900">{myCompletedRequests.length}</h3></div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Total do Mês</p><h3 className="text-3xl font-bold text-slate-900">{formatCurrency(totalValue)}</h3></div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Status de Pagamento</p>{isPaid ? <h3 className="text-2xl font-bold text-emerald-600 flex items-center"><CheckCircle2 className="w-6 h-6 mr-2" />Pago</h3> : <h3 className="text-2xl font-bold text-amber-600">Em Aberto</h3>}</div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Medições Realizadas</p><h3 className="text-3xl font-bold text-slate-900">{myCompletedRequests.length}</h3></div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <table className="w-full text-sm text-left">
-                <thead className="bg-stone-50 text-stone-600 font-medium border-b border-stone-200"><tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Endereço</th><th className="px-6 py-4 text-center">Ambientes</th><th className="px-6 py-4 text-center">KM</th></tr></thead>
+                <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200"><tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Endereço</th><th className="px-6 py-4 text-center">Ambientes</th><th className="px-6 py-4 text-center">KM</th></tr></thead>
                 <tbody className="divide-y divide-stone-200">
-                  {myCompletedRequests.length === 0 ? <tr><td colSpan={4} className="px-6 py-8 text-center text-stone-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => (
-                    <tr key={req.id} className="hover:bg-stone-50"><td className="px-6 py-4 font-medium text-stone-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')}</td><td className="px-6 py-4 text-stone-600 truncate max-w-xs">{req.address}</td><td className="px-6 py-4 text-center text-stone-600">{req.environmentsCount}</td><td className="px-6 py-4 text-center text-stone-600">{req.kmDriven || 0} km</td></tr>
+                  {myCompletedRequests.length === 0 ? <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr> : myCompletedRequests.map(req => (
+                    <tr key={req.id} className="hover:bg-slate-50"><td className="px-6 py-4 font-medium text-slate-900">{format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM/yyyy')}</td><td className="px-6 py-4 text-slate-600 truncate max-w-xs">{req.address}</td><td className="px-6 py-4 text-center text-slate-600">{req.environmentsCount}</td><td className="px-6 py-4 text-center text-slate-600">{req.kmDriven || 0} km</td></tr>
                   ))}
                 </tbody>
               </table>

@@ -174,29 +174,29 @@ export default function AppointmentModal({
           }
      };
 
-     const inputClass = "w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm";
-     const labelClass = "block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1";
+     const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm";
+     const labelClass = "block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1";
 
      const editingClient = isEditMode ? clients.find(c => c.id === editRequest?.clientId) : null;
 
      return (
-          <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-blue-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col animate-in zoom-in-95 duration-200">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-stone-200 shrink-0">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-200 shrink-0">
                          <div>
                               <div className="flex items-center gap-2">
                                    {isEditMode && <Pencil className="w-4 h-4 text-amber-500" />}
-                                   <h3 className="text-xl font-bold text-stone-900">
+                                   <h3 className="text-xl font-bold text-slate-900">
                                         {isEditMode ? 'Editar Agendamento' : 'Agendar Nova Medição'}
                                    </h3>
                               </div>
                               {isEditMode && editingClient && (
-                                   <p className="text-sm text-stone-500 mt-0.5">{editingClient.name} • <span className="text-amber-600 font-medium capitalize">{editRequest?.status === 'pending' ? 'Pendente' : editRequest?.status === 'confirmed' ? 'Confirmado' : editRequest?.status}</span></p>
+                                   <p className="text-sm text-slate-500 mt-0.5">{editingClient.name} • <span className="text-amber-600 font-medium capitalize">{editRequest?.status === 'pending' ? 'Pendente' : editRequest?.status === 'confirmed' ? 'Confirmado' : editRequest?.status}</span></p>
                               )}
-                              {!isEditMode && <p className="text-sm text-stone-500 mt-0.5">Preencha os dados do agendamento</p>}
+                              {!isEditMode && <p className="text-sm text-slate-500 mt-0.5">Preencha os dados do agendamento</p>}
                          </div>
-                         <button onClick={onClose} className="p-2 rounded-xl hover:bg-stone-100 text-stone-500 transition-colors">
+                         <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
                               <X className="w-5 h-5" />
                          </button>
                     </div>
@@ -255,14 +255,14 @@ export default function AppointmentModal({
                               {/* Endereço */}
                               <div>
                                    <div className="flex items-center space-x-2 mb-4">
-                                        <MapPin className="w-4 h-4 text-stone-500" />
-                                        <h4 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Endereço da Obra</h4>
+                                        <MapPin className="w-4 h-4 text-slate-500" />
+                                        <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Endereço da Obra</h4>
                                    </div>
                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="relative">
                                              <label className={labelClass}>CEP *</label>
                                              <input type="text" value={address.zipCode} onChange={handleCepChange} className={inputClass} placeholder="00000-000" maxLength={9} />
-                                             {isLoadingCep && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-8 text-stone-400" />}
+                                             {isLoadingCep && <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-8 text-slate-400" />}
                                         </div>
                                         <div className="md:col-span-2">
                                              <label className={labelClass}>Rua / Logradouro</label>
@@ -298,8 +298,8 @@ export default function AppointmentModal({
                               {/* Contato */}
                               <div>
                                    <div className="flex items-center space-x-2 mb-4">
-                                        <User className="w-4 h-4 text-stone-500" />
-                                        <h4 className="text-sm font-bold text-stone-700 uppercase tracking-wider">Contato no Local</h4>
+                                        <User className="w-4 h-4 text-slate-500" />
+                                        <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Contato no Local</h4>
                                    </div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -316,8 +316,8 @@ export default function AppointmentModal({
                     </form>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-stone-200 flex justify-end space-x-3 shrink-0 bg-stone-50 rounded-b-2xl">
-                         <button type="button" onClick={onClose} className="px-5 py-2.5 border border-stone-300 text-stone-700 rounded-xl hover:bg-stone-100 transition-colors text-sm font-medium">
+                    <div className="p-6 border-t border-slate-200 flex justify-end space-x-3 shrink-0 bg-slate-50 rounded-b-2xl">
+                         <button type="button" onClick={onClose} className="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 transition-colors text-sm font-medium">
                               Cancelar
                          </button>
                          <button

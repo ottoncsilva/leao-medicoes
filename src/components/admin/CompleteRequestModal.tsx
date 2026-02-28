@@ -29,29 +29,29 @@ export default function CompleteRequestModal({ requestId, onClose, onSuccess }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
         <div className="flex items-center space-x-3 mb-2 text-emerald-600">
           <CheckCircle2 className="w-6 h-6" />
-          <h3 className="text-lg font-bold text-stone-900">Finalizar Medição</h3>
+          <h3 className="text-lg font-bold text-slate-900">Finalizar Medição</h3>
         </div>
-        <p className="text-sm text-stone-500 mb-6">Para gerar o faturamento correto, informe quantos quilômetros foram rodados nesta visita.</p>
+        <p className="text-sm text-slate-500 mb-6">Para gerar o faturamento correto, informe quantos quilômetros foram rodados nesta visita.</p>
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <label className="block text-sm font-medium text-stone-700 mb-2">KM Rodados (Ida e Volta)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">KM Rodados (Ida e Volta)</label>
             <input
               type="number"
               required
               min="0"
               value={kmInput}
               onChange={e => setKmInput(e.target.value)}
-              className="w-full px-3 py-3 border border-stone-300 rounded-xl focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm"
+              className="w-full px-3 py-3 border border-slate-300 rounded-xl focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm"
               placeholder="Ex: 15"
               autoFocus
             />
           </div>
           <div className="flex justify-end space-x-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-stone-300 text-stone-700 rounded-xl hover:bg-stone-50 transition-colors text-sm font-medium">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium">
               Cancelar
             </button>
             <button type="submit" disabled={isLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium disabled:opacity-50">
