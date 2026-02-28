@@ -45,8 +45,8 @@ export default function RescheduleModal({ request, settings, clients, onClose, o
      };
 
      return (
-          <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-               <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+               <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center space-x-3 mb-4 text-blue-600">
                          <MessageSquare className="w-6 h-6" />
                          <h3 className="text-lg font-bold text-slate-900">Pedir Alteração de Horário</h3>

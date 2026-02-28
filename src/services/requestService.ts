@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export type RequestStatus = 'pending' | 'confirmed' | 'rejected' | 'completed' | 'reschedule_requested';
@@ -35,6 +35,7 @@ export interface MeasurementRequest {
   createdAt: Date;
   kmDriven?: number; // Preenchido quando status = completed
   rescheduleReason?: string; // Preenchido quando status = reschedule_requested
+  clientNotifiedDayBefore?: boolean; // Preenchido quando o admin acessa no dia anterior
 }
 
 const COLLECTION_NAME = 'measurement_requests';
@@ -91,6 +92,18 @@ export const requestService = {
       return true;
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
+      throw error;
+    }
+  },
+
+  // Excluir solicitação permanentemente (Limpar do sistema/faturamento)
+  async deleteRequest(requestId: string) {
+    try {
+      const requestRef = doc(db, COLLECTION_NAME, requestId);
+      await deleteDoc(requestRef);
+      return true;
+    } catch (error) {
+      console.error("Erro ao excluir solicitação:", error);
       throw error;
     }
   }

@@ -19,6 +19,8 @@ export interface GlobalSettings {
   notifyClientApproved?: boolean;
   notifyClientRejected?: boolean;
   notifyClientReschedule?: boolean;
+  notifyClientDayBefore?: boolean;
+  notifyClientCompleted?: boolean;
   customHolidays?: Holiday[];
   workOnSaturdays?: boolean;
   workOnSundays?: boolean;

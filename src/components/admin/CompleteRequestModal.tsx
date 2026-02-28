@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { requestService } from '../../services/requestService';
+import { requestService, MeasurementRequest } from '../../services/requestService';
+import { whatsappService } from '../../services/whatsappService';
+import { GlobalSettings } from '../../services/settingsService';
+import { Client } from '../../services/clientService';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface Props {
-  requestId: string;
+  request: MeasurementRequest;
+  settings: GlobalSettings;
+  clients: Client[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function CompleteRequestModal({ requestId, onClose, onSuccess }: Props) {
+export default function CompleteRequestModal({ request, settings, clients, onClose, onSuccess }: Props) {
   const [kmInput, setKmInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,7 +23,17 @@ export default function CompleteRequestModal({ requestId, onClose, onSuccess }: 
     e.preventDefault();
     setIsLoading(true);
     try {
-      await requestService.updateRequestStatus(requestId, 'completed', { kmDriven: Number(kmInput) || 0 });
+      await requestService.updateRequestStatus(request.id!, 'completed', { kmDriven: Number(kmInput) || 0 });
+
+      const client = clients.find(c => c.id === request.clientId);
+      if (client?.phone && settings.notifyClientCompleted) {
+        whatsappService.sendMessage(
+          client.phone,
+          `✅ Olá ${client.name}!\n\nA medição solicitada para ${format(new Date(request.requestedDate + 'T12:00:00'), 'dd/MM')} às ${request.requestedTime} foi marcada como *CONCLUÍDA* pela equipe técnica da Leão Medições.\n\nAgradecemos a parceria!`,
+          settings
+        );
+      }
+
       toast.success('Medição finalizada com sucesso!');
       onClose();
       onSuccess();
@@ -29,8 +45,8 @@ export default function CompleteRequestModal({ requestId, onClose, onSuccess }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center space-x-3 mb-2 text-emerald-600">
           <CheckCircle2 className="w-6 h-6" />
           <h3 className="text-lg font-bold text-slate-900">Finalizar Medição</h3>

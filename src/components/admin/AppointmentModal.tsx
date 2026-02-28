@@ -183,8 +183,8 @@ export default function AppointmentModal({
      const editingClient = isEditMode ? clients.find(c => c.id === editRequest?.clientId) : null;
 
      return (
-          <div className="fixed inset-0 bg-blue-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 pb-0">
-               <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-200">
+          <div className="fixed inset-0 bg-blue-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 pb-0" onClick={onClose}>
+               <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200 shrink-0">
                          <div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users, CheckSquare, Clock, Menu } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users, CheckSquare, Clock, Menu, MapPin } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { db, auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -9,7 +9,8 @@ import { requestService, MeasurementRequest, RequestStatus } from '../services/r
 import { settingsService, GlobalSettings } from '../services/settingsService';
 import { blockedTimeService, BlockedTime } from '../services/blockedTimeService';
 import { billingService, BillingStatus } from '../services/billingService';
-import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { whatsappService } from '../services/whatsappService';
+import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -24,13 +25,12 @@ import SettingsTab from '../components/admin/SettingsTab';
 import CompleteRequestModal from '../components/admin/CompleteRequestModal';
 import RescheduleModal from '../components/admin/RescheduleModal';
 
-type Tab = 'dashboard' | 'agenda' | 'requests' | 'complete' | 'clients' | 'billing' | 'future' | 'settings';
+type Tab = 'dashboard' | 'agenda' | 'requests' | 'clients' | 'billing' | 'future' | 'settings';
 
 const NAV_ITEMS: { key: Tab; label: string; Icon: any }[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { key: 'agenda', label: 'Agenda Geral', Icon: CalendarDays },
   { key: 'requests', label: 'Solicitações', Icon: ClipboardList },
-  { key: 'complete', label: 'Completar Visita', Icon: CheckSquare },
   { key: 'clients', label: 'Clientes (Lojas)', Icon: Users },
   { key: 'billing', label: 'Faturamento', Icon: DollarSign },
   { key: 'future', label: 'Medidas Futuras', Icon: Clock },
@@ -38,10 +38,9 @@ const NAV_ITEMS: { key: Tab; label: string; Icon: any }[] = [
 ];
 
 const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
-  dashboard: { title: 'Visão Geral', sub: 'Acompanhe o desempenho e faturamento dos últimos 6 meses.' },
+  dashboard: { title: 'Visão Geral', sub: 'Acompanhe o desempenho e as próximas medições a realizar.' },
   agenda: { title: 'Agenda Geral', sub: 'Clique em um horário para agendar uma medição. Arraste para reorganizar.' },
   requests: { title: 'Solicitações de Medição', sub: 'Aprove, peça alteração ou marque medições como realizadas.' },
-  complete: { title: 'Completar Medições', sub: 'Confirme os ambientes medidos presencialmente na visita.' },
   clients: { title: 'Gestão de Clientes', sub: 'Cadastre e edite lojas e defina regras de cobrança.' },
   billing: { title: 'Faturamento Mensal', sub: 'Consulte o faturamento por mês e marque como pago.' },
   future: { title: 'Medidas Futuras (Remarketing)', sub: 'Histórico de ambientes não medidos para prospecção.' },
@@ -91,6 +90,23 @@ export default function AdminDashboard() {
       setSettings(s);
       setBlockedTimes(b);
       setBillingStatuses(bs);
+
+      if (s.notifyClientDayBefore) {
+        const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+        for (const req of r) {
+          if (req.status === 'confirmed' && req.requestedDate === tomorrowStr && !req.clientNotifiedDayBefore) {
+            const client = c.find(cl => cl.id === req.clientId);
+            if (client?.phone) {
+              whatsappService.sendMessage(
+                client.phone,
+                `⏳ Olá ${client.name}!\n\nLembramos que sua medição na Leão Medições está agendada para *AMANHÃ (${format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM')})* às ${req.requestedTime}.\n\nEndereço: ${req.address}`,
+                s
+              );
+              await requestService.updateRequestStatus(req.id!, 'confirmed', { clientNotifiedDayBefore: true });
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -118,6 +134,11 @@ export default function AdminDashboard() {
     });
     return { name: format(d, 'MMM', { locale: ptBR }).toUpperCase(), Faturamento: monthTotal };
   });
+
+  const nextAppointments = requests
+    .filter(r => r.status === 'confirmed' && new Date(`${r.requestedDate}T${r.requestedTime}`) > new Date())
+    .sort((a, b) => new Date(`${a.requestedDate}T${a.requestedTime}`).getTime() - new Date(`${b.requestedDate}T${b.requestedTime}`).getTime())
+    .slice(0, 6);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row relative">
@@ -181,18 +202,43 @@ export default function AdminDashboard() {
                     <h3 className="text-3xl font-bold text-amber-600">{requests.filter(r => r.status === 'pending').length}</h3>
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-6">Faturamento — Últimos 6 Meses</h3>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} tickFormatter={v => `R$ ${v}`} />
-                        <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-                        <Bar dataKey="Faturamento" fill="#1c1917" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-6 shrink-0">Faturamento — Últimos 6 Meses</h3>
+                    <div className="h-80 w-full shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e5e4" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#78716c' }} tickFormatter={v => `R$ ${v}`} />
+                          <Tooltip cursor={{ fill: '#f5f5f4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+                          <Bar dataKey="Faturamento" fill="#1c1917" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4 shrink-0">Próximas 6 Medições</h3>
+                    <div className="space-y-3 overflow-y-auto pr-2 flex-1">
+                      {nextAppointments.length === 0 ? (
+                        <p className="text-slate-500 text-sm text-center py-4 bg-slate-50 rounded-xl border border-slate-100">Nenhuma medição futura agendada.</p>
+                      ) : (
+                        nextAppointments.map(req => (
+                          <div key={req.id} onClick={() => setCompleteModalId(req.id!)} className="p-4 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-all group flex flex-col">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <h4 className="font-semibold text-slate-900 group-hover:text-emerald-800 line-clamp-1">{req.clientName}</h4>
+                              <span className="text-xs font-medium bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full whitespace-nowrap shrink-0">
+                                {format(new Date(req.requestedDate + 'T12:00:00'), 'dd/MM')} às {req.requestedTime}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-1.5 text-sm text-slate-600">
+                              <span className="flex items-start"><MapPin className="w-4 h-4 mr-1.5 shrink-0 mt-0.5" /><span className="line-clamp-2">{req.address}</span></span>
+                              <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5 shrink-0" />{req.estimatedMinutes} min • {req.environmentsCount} ambientes</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -217,14 +263,12 @@ export default function AdminDashboard() {
                 onFilterChange={setRequestFilter}
                 clients={clients}
                 settings={settings}
+                blockedTimes={blockedTimes}
                 onCompleteOpen={setCompleteModalId}
                 onRescheduleOpen={setRescheduleModalReq}
                 onRefresh={fetchData}
               />
             )}
-
-            {/* Completar Visitas */}
-            {activeTab === 'complete' && <CompleteMeasurementsTab requests={requests} clients={clients} onUpdate={fetchData} />}
 
             {/* Clientes */}
             {activeTab === 'clients' && (
@@ -260,7 +304,9 @@ export default function AdminDashboard() {
       {
         completeModalId && (
           <CompleteRequestModal
-            requestId={completeModalId}
+            request={requests.find(r => r.id === completeModalId)!}
+            settings={settings}
+            clients={clients}
             onClose={() => setCompleteModalId(null)}
             onSuccess={fetchData}
           />
