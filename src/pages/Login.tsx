@@ -70,30 +70,30 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-stone-900 p-8 text-center">
-          <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-stone-900" />
+        <div className="bg-blue-950 p-8 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-slate-900" />
           </div>
           <h1 className="text-2xl font-bold text-white">Leão Medições</h1>
-          <p className="text-stone-400 mt-2 text-sm">Portal de Agendamento</p>
+          <p className="text-slate-400 mt-2 text-sm">Portal de Agendamento</p>
         </div>
         
         <div className="p-8">
           {/* Tabs */}
-          <div className="flex mb-6 bg-stone-100 p-1 rounded-xl">
+          <div className="flex mb-6 bg-slate-100 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => { setIsFirstAccess(false); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${!isFirstAccess ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${!isFirstAccess ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Entrar
             </button>
             <button
               type="button"
               onClick={() => { setIsFirstAccess(true); setError(''); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${isFirstAccess ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${isFirstAccess ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Primeiro Acesso
             </button>
@@ -107,18 +107,18 @@ export default function Login() {
             )}
             
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {isFirstAccess ? 'E-mail cadastrado pela Leão Medições' : 'E-mail ou Usuário'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  {isFirstAccess ? <Mail className="h-5 w-5 text-stone-400" /> : <User className="h-5 w-5 text-stone-400" />}
+                  {isFirstAccess ? <Mail className="h-5 w-5 text-slate-400" /> : <User className="h-5 w-5 text-slate-400" />}
                 </div>
                 <input
                   type={isFirstAccess ? "email" : "text"}
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm"
+                  className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm"
                   placeholder={isFirstAccess ? "seu@email.com" : "admin ou seu@email.com"}
                   required
                 />
@@ -126,30 +126,30 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {isFirstAccess ? 'Crie uma Senha' : 'Senha'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-stone-400" />
+                  <Lock className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm"
+                  className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm"
                   placeholder="••••••••"
                   required
                   minLength={6}
                 />
               </div>
-              {isFirstAccess && <p className="text-xs text-stone-500 mt-2">Mínimo de 6 caracteres.</p>}
+              {isFirstAccess && <p className="text-xs text-slate-500 mt-2">Mínimo de 6 caracteres.</p>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-stone-900 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900 transition-colors disabled:opacity-50"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-950 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-950 transition-colors disabled:opacity-50"
             >
               {isLoading ? 'Aguarde...' : (isFirstAccess ? 'Criar Senha e Acessar' : 'Entrar')}
             </button>

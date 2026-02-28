@@ -10,6 +10,7 @@ export interface Holiday {
 
 export interface GlobalSettings {
   defaultKmPrice: number;
+  minutesPerEnvironment?: number; // minutos por ambiente para calcular tempo estimado
   evolutionApiUrl?: string;
   evolutionInstance?: string;
   evolutionApiKey?: string;
@@ -23,6 +24,10 @@ export interface GlobalSettings {
   workOnSundays?: boolean;
   workStartTime?: string;
   workEndTime?: string;
+  companyName?: string;
+  companyCnpj?: string;
+  companyAddress?: string;
+  companyPhone?: string;
 }
 
 export const FIXED_HOLIDAYS = [
@@ -46,17 +51,22 @@ export const settingsService = {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as GlobalSettings;
-        return { 
-          ...data, 
+        return {
+          ...data,
           customHolidays: data.customHolidays || [],
           workOnSaturdays: data.workOnSaturdays ?? false,
           workOnSundays: data.workOnSundays ?? false,
           workStartTime: data.workStartTime || '08:00',
-          workEndTime: data.workEndTime || '18:00'
+          workEndTime: data.workEndTime || '18:00',
+          companyName: data.companyName || '',
+          companyCnpj: data.companyCnpj || '',
+          companyAddress: data.companyAddress || '',
+          companyPhone: data.companyPhone || ''
         };
       }
-      return { 
+      return {
         defaultKmPrice: 2.5,
+        minutesPerEnvironment: 30,
         notifyManagerNewRequest: true,
         notifyClientApproved: true,
         notifyClientRejected: true,
@@ -65,17 +75,25 @@ export const settingsService = {
         workOnSaturdays: false,
         workOnSundays: false,
         workStartTime: '08:00',
-        workEndTime: '18:00'
+        workEndTime: '18:00',
+        companyName: '',
+        companyCnpj: '',
+        companyAddress: '',
+        companyPhone: ''
       }; // Valor padrão caso não exista
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
-      return { 
-        defaultKmPrice: 2.5, 
+      return {
+        defaultKmPrice: 2.5,
         customHolidays: [],
         workOnSaturdays: false,
         workOnSundays: false,
         workStartTime: '08:00',
-        workEndTime: '18:00'
+        workEndTime: '18:00',
+        companyName: '',
+        companyCnpj: '',
+        companyAddress: '',
+        companyPhone: ''
       };
     }
   },
