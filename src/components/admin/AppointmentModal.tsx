@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MapPin, User, Phone, Home, Building2, Loader2, Clock, Layers } from 'lucide-react';
+import { X, MapPin, User, Phone, Building2, Loader2, Clock, Layers, Pencil } from 'lucide-react';
 import { requestService, MeasurementRequest } from '../../services/requestService';
 import { blockedTimeService, BlockedTime } from '../../services/blockedTimeService';
 import { Client } from '../../services/clientService';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 interface Props {
      initialDate?: string;
      initialTime?: string;
+     editRequest?: MeasurementRequest; // Se fornecido, entra em modo edição
      clients: Client[];
      requests: MeasurementRequest[];
      blockedTimes: BlockedTime[];
@@ -34,6 +35,7 @@ interface AddressForm {
 export default function AppointmentModal({
      initialDate = '',
      initialTime = '',
+     editRequest,
      clients,
      requests,
      blockedTimes,
@@ -41,30 +43,38 @@ export default function AppointmentModal({
      onClose,
      onSuccess,
 }: Props) {
-     const [clientId, setClientId] = useState('');
-     const [projectName, setProjectName] = useState('');
-     const [environmentsCount, setEnvironmentsCount] = useState(1);
-     const [estimatedMinutes, setEstimatedMinutes] = useState(60);
-     const [date, setDate] = useState(initialDate);
-     const [time, setTime] = useState(initialTime);
+     const isEditMode = !!editRequest;
+
+     const [clientId, setClientId] = useState(editRequest?.clientId || '');
+     const [projectName, setProjectName] = useState(editRequest?.projectName || '');
+     const [environmentsCount, setEnvironmentsCount] = useState(editRequest?.environmentsCount || 1);
+     const [estimatedMinutes, setEstimatedMinutes] = useState(editRequest?.estimatedMinutes || 60);
+     const [date, setDate] = useState(editRequest?.requestedDate || initialDate);
+     const [time, setTime] = useState(editRequest?.requestedTime || initialTime);
      const [isLoadingCep, setIsLoadingCep] = useState(false);
      const [isSubmitting, setIsSubmitting] = useState(false);
      const [conflictError, setConflictError] = useState('');
 
      const [address, setAddress] = useState<AddressForm>({
-          zipCode: '', street: '', number: '', complement: '',
-          neighborhood: '', city: '', state: '', condominiumName: '',
-          contactName: '', contactPhone: ''
+          zipCode: editRequest?.zipCode || '',
+          street: editRequest?.street || '',
+          number: editRequest?.number || '',
+          complement: editRequest?.complement || '',
+          neighborhood: editRequest?.neighborhood || '',
+          city: editRequest?.city || '',
+          state: editRequest?.state || '',
+          condominiumName: editRequest?.condominiumName || '',
+          contactName: editRequest?.contactName || '',
+          contactPhone: editRequest?.contactPhone || '',
      });
 
-     // Auto-calc estimated time based on environments (30 min each), but allow manual override
      const suggestedMinutes = environmentsCount * 30;
 
      useEffect(() => {
-          setEstimatedMinutes(environmentsCount * 30);
-     }, [environmentsCount]);
+          if (!isEditMode) setEstimatedMinutes(environmentsCount * 30);
+     }, [environmentsCount, isEditMode]);
 
-     // Conflito check reativo
+     // Conflito check reativo (ignora o próprio evento em modo edição)
      useEffect(() => {
           if (!date || !time) { setConflictError(''); return; }
           const start = new Date(`${date}T${time}:00`);
@@ -73,6 +83,7 @@ export default function AppointmentModal({
                let eventStart: Date, eventEnd: Date;
                if ('requestedDate' in event) {
                     if (event.status === 'rejected') return false;
+                    if (isEditMode && event.id === editRequest?.id) return false; // ignora o próprio
                     eventStart = new Date(`${event.requestedDate}T${event.requestedTime}:00`);
                     eventEnd = addMinutes(eventStart, event.estimatedMinutes);
                } else {
@@ -82,7 +93,7 @@ export default function AppointmentModal({
                return start < eventEnd && end > eventStart;
           });
           setConflictError(hasConflict ? 'Conflito de horário! Já existe uma medição ou bloqueio neste período.' : '');
-     }, [date, time, estimatedMinutes, requests, blockedTimes]);
+     }, [date, time, estimatedMinutes, requests, blockedTimes, isEditMode, editRequest?.id]);
 
      const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const cep = e.target.value.replace(/\D/g, '');
@@ -93,62 +104,71 @@ export default function AppointmentModal({
                     const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                     const data = await response.json();
                     if (!data.erro) {
-                         setAddress(prev => ({
-                              ...prev,
-                              street: data.logradouro,
-                              neighborhood: data.bairro,
-                              city: data.localidade,
-                              state: data.uf,
-                         }));
-                    } else {
-                         toast.error('CEP não encontrado.');
-                    }
-               } catch {
-                    toast.error('Erro ao buscar CEP. Verifique sua conexão.');
-               } finally {
-                    setIsLoadingCep(false);
-               }
+                         setAddress(prev => ({ ...prev, street: data.logradouro, neighborhood: data.bairro, city: data.localidade, state: data.uf }));
+                    } else { toast.error('CEP não encontrado.'); }
+               } catch { toast.error('Erro ao buscar CEP. Verifique sua conexão.'); }
+               finally { setIsLoadingCep(false); }
           }
      };
 
      const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          if (conflictError) {
-               toast.error(conflictError);
-               return;
-          }
-          const client = clients.find(c => c.id === clientId);
-          if (!client || !client.id) return;
+          if (conflictError) { toast.error(conflictError); return; }
 
           const fullAddress = `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}, ${address.neighborhood}, ${address.city} - ${address.state}, CEP: ${address.zipCode}`;
-
           setIsSubmitting(true);
           try {
-               await requestService.createRequest({
-                    clientId: client.id,
-                    clientName: client.name,
-                    projectName,
-                    address: fullAddress,
-                    zipCode: address.zipCode,
-                    street: address.street,
-                    number: address.number,
-                    complement: address.complement,
-                    neighborhood: address.neighborhood,
-                    city: address.city,
-                    state: address.state,
-                    condominiumName: address.condominiumName,
-                    contactName: address.contactName,
-                    contactPhone: address.contactPhone,
-                    environmentsCount,
-                    estimatedMinutes,
-                    requestedDate: date,
-                    requestedTime: time,
-               });
-               toast.success(`Medição agendada para ${format(new Date(`${date}T${time}:00`), 'dd/MM')} às ${time}!`);
+               if (isEditMode && editRequest?.id) {
+                    // Modo edição: atualiza os dados mantendo o status atual
+                    await requestService.updateRequestStatus(editRequest.id, editRequest.status, {
+                         projectName,
+                         address: fullAddress,
+                         zipCode: address.zipCode,
+                         street: address.street,
+                         number: address.number,
+                         complement: address.complement,
+                         neighborhood: address.neighborhood,
+                         city: address.city,
+                         state: address.state,
+                         condominiumName: address.condominiumName,
+                         contactName: address.contactName,
+                         contactPhone: address.contactPhone,
+                         environmentsCount,
+                         estimatedMinutes,
+                         requestedDate: date,
+                         requestedTime: time,
+                    });
+                    toast.success(`Agendamento atualizado para ${format(new Date(`${date}T${time}:00`), 'dd/MM')} às ${time}!`);
+               } else {
+                    // Modo criação
+                    const client = clients.find(c => c.id === clientId);
+                    if (!client || !client.id) return;
+                    await requestService.createRequest({
+                         clientId: client.id,
+                         clientName: client.name,
+                         projectName,
+                         address: fullAddress,
+                         zipCode: address.zipCode,
+                         street: address.street,
+                         number: address.number,
+                         complement: address.complement,
+                         neighborhood: address.neighborhood,
+                         city: address.city,
+                         state: address.state,
+                         condominiumName: address.condominiumName,
+                         contactName: address.contactName,
+                         contactPhone: address.contactPhone,
+                         environmentsCount,
+                         estimatedMinutes,
+                         requestedDate: date,
+                         requestedTime: time,
+                    });
+                    toast.success(`Medição agendada para ${format(new Date(`${date}T${time}:00`), 'dd/MM')} às ${time}!`);
+               }
                onClose();
                onSuccess();
           } catch {
-               toast.error('Erro ao agendar medição. Tente novamente.');
+               toast.error('Erro ao salvar. Tente novamente.');
           } finally {
                setIsSubmitting(false);
           }
@@ -157,14 +177,24 @@ export default function AppointmentModal({
      const inputClass = "w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm";
      const labelClass = "block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1";
 
+     const editingClient = isEditMode ? clients.find(c => c.id === editRequest?.clientId) : null;
+
      return (
           <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col animate-in zoom-in-95 duration-200">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-stone-200 shrink-0">
                          <div>
-                              <h3 className="text-xl font-bold text-stone-900">Agendar Nova Medição</h3>
-                              <p className="text-sm text-stone-500 mt-0.5">Preencha os dados do agendamento</p>
+                              <div className="flex items-center gap-2">
+                                   {isEditMode && <Pencil className="w-4 h-4 text-amber-500" />}
+                                   <h3 className="text-xl font-bold text-stone-900">
+                                        {isEditMode ? 'Editar Agendamento' : 'Agendar Nova Medição'}
+                                   </h3>
+                              </div>
+                              {isEditMode && editingClient && (
+                                   <p className="text-sm text-stone-500 mt-0.5">{editingClient.name} • <span className="text-amber-600 font-medium capitalize">{editRequest?.status === 'pending' ? 'Pendente' : editRequest?.status === 'confirmed' ? 'Confirmado' : editRequest?.status}</span></p>
+                              )}
+                              {!isEditMode && <p className="text-sm text-stone-500 mt-0.5">Preencha os dados do agendamento</p>}
                          </div>
                          <button onClick={onClose} className="p-2 rounded-xl hover:bg-stone-100 text-stone-500 transition-colors">
                               <X className="w-5 h-5" />
@@ -175,15 +205,17 @@ export default function AppointmentModal({
                     <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
                          <div className="p-6 space-y-6">
 
-                              {/* Loja e Projeto */}
+                              {/* Loja e Projeto (somente modo criação) */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                   <div>
-                                        <label className={labelClass}>Cliente (Loja) *</label>
-                                        <select required value={clientId} onChange={e => setClientId(e.target.value)} className={inputClass}>
-                                             <option value="">Selecione...</option>
-                                             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                   </div>
+                                   {!isEditMode && (
+                                        <div>
+                                             <label className={labelClass}>Cliente (Loja) *</label>
+                                             <select required value={clientId} onChange={e => setClientId(e.target.value)} className={inputClass}>
+                                                  <option value="">Selecione...</option>
+                                                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                             </select>
+                                        </div>
+                                   )}
                                    <div>
                                         <label className={labelClass}>Nome do Projeto</label>
                                         <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className={inputClass} placeholder="Ex: Apto 302 Torre A" />
@@ -291,10 +323,10 @@ export default function AppointmentModal({
                          <button
                               onClick={handleSubmit as any}
                               disabled={isSubmitting || !!conflictError}
-                              className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              className={`px-5 py-2.5 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${isEditMode ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
                          >
                               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                              {isSubmitting ? 'Agendando...' : 'Confirmar Agendamento'}
+                              {isSubmitting ? 'Salvando...' : isEditMode ? 'Salvar Alterações' : 'Confirmar Agendamento'}
                          </button>
                     </div>
                </div>

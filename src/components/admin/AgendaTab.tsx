@@ -43,9 +43,13 @@ interface Props {
 export default function AgendaTab({ requests, blockedTimes, settings, clients, onRefresh }: Props) {
      const [view, setView] = useState<View>(Views.WEEK);
      const [date, setDate] = useState(new Date());
-     const [appointmentModal, setAppointmentModal] = useState<{ date: string; time: string } | null>(null);
+     const [appointmentModal, setAppointmentModal] = useState<{ date: string; time: string; editRequest?: MeasurementRequest } | null>(null);
      const [blockModal, setBlockModal] = useState<{ start: Date; end: Date } | null>(null);
      const [manualBlockOpen, setManualBlockOpen] = useState(false);
+
+     // Parsing dos horários de trabalho das configurações
+     const [workStartHour, workStartMin] = (settings.workStartTime || '08:00').split(':').map(Number);
+     const [workEndHour, workEndMin] = (settings.workEndTime || '18:00').split(':').map(Number);
 
      // Eventos do calendário
      const currentYear = date.getFullYear();
@@ -58,7 +62,14 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
           ...requests.map(req => {
                const start = new Date(`${req.requestedDate}T${req.requestedTime}:00`);
                const end = addMinutes(start, req.estimatedMinutes);
-               return { id: req.id, title: `${req.clientName} (${req.environmentsCount} amb)`, start, end, status: req.status, type: 'request' };
+               return {
+                    id: req.id,
+                    title: `${req.clientName} (${req.environmentsCount} amb)`,
+                    start, end,
+                    status: req.status,
+                    type: 'request',
+                    requestData: req,
+               };
           }),
           ...blockedTimes.map(bt => ({
                id: bt.id,
@@ -90,15 +101,81 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
           if (event.status === 'reschedule_requested') bg = '#2563eb';
           if (event.type === 'blocked') bg = '#78716c';
           if (event.type === 'holiday') bg = '#ef4444';
-          return { style: { backgroundColor: bg, borderRadius: '6px', opacity: 0.9, color: 'white', border: '0', display: 'block' } };
+          return {
+               style: {
+                    backgroundColor: bg,
+                    borderRadius: '6px',
+                    opacity: 0.9,
+                    color: 'white',
+                    border: '0',
+                    display: 'block',
+                    cursor: event.type === 'request' ? 'pointer' : 'default',
+               }
+          };
      };
 
-     const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
-          // Clique em slot vazio → abre modal de agendamento diretamente
+     // Visual de indisponibilidade nos slots
+     const slotPropGetter = (slotDate: Date) => {
+          const h = slotDate.getHours();
+          const m = slotDate.getMinutes();
+          const totalMin = h * 60 + m;
+          const startMin = workStartHour * 60 + workStartMin;
+          const endMin = workEndHour * 60 + workEndMin;
+          const isOffHours = totalMin < startMin || totalMin >= endMin;
+
+          const dow = slotDate.getDay();
+          const isNonWorkingSat = dow === 6 && !settings.workOnSaturdays;
+          const isNonWorkingSun = dow === 0 && !settings.workOnSundays;
+          const isNonWorkingWeekend = isNonWorkingSat || isNonWorkingSun;
+
+          if (isNonWorkingWeekend) {
+               return {
+                    style: {
+                         backgroundColor: '#e7e5e4',
+                         backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)',
+                    }
+               };
+          }
+          if (isOffHours) {
+               return {
+                    style: {
+                         backgroundColor: '#f5f5f4',
+                         backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(0,0,0,0.025) 4px, rgba(0,0,0,0.025) 8px)',
+                    }
+               };
+          }
+          return {};
+     };
+
+     // Visual de indisponibilidade nos dias (cabeçalho)
+     const dayPropGetter = (dayDate: Date) => {
+          const dow = dayDate.getDay();
+          const isNonWorkingSat = dow === 6 && !settings.workOnSaturdays;
+          const isNonWorkingSun = dow === 0 && !settings.workOnSundays;
+          if (isNonWorkingSat || isNonWorkingSun) {
+               return { style: { backgroundColor: '#e7e5e4' } };
+          }
+          return {};
+     };
+
+     // Clique em slot vazio → abre modal de agendamento
+     const handleSelectSlot = ({ start }: { start: Date; end: Date }) => {
           setAppointmentModal({
                date: format(start, 'yyyy-MM-dd'),
                time: format(start, 'HH:mm'),
           });
+     };
+
+     // Clique em evento → abre edição (admin sempre pode)
+     const handleSelectEvent = (event: any) => {
+          if (event.type === 'blocked' || event.type === 'holiday') return;
+          if (event.type === 'request' && event.requestData) {
+               setAppointmentModal({
+                    date: event.requestData.requestedDate,
+                    time: event.requestData.requestedTime,
+                    editRequest: event.requestData,
+               });
+          }
      };
 
      const onEventDrop = async ({ event, start, end }: any) => {
@@ -150,6 +227,10 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />Realizado</span>
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-stone-500 inline-block" />Bloqueio</span>
                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Feriado</span>
+                         <span className="flex items-center gap-1.5 text-stone-400 border-l border-stone-200 pl-3">
+                              <span className="w-10 h-3 rounded-sm inline-block" style={{ backgroundImage: 'repeating-linear-gradient(135deg, #f5f5f4, #f5f5f4 4px, #e8e8e7 4px, #e8e8e7 8px)' }} />
+                              Fora do expediente
+                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                          <button
@@ -181,13 +262,18 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                          date={date}
                          onNavigate={setDate}
                          eventPropGetter={eventStyleGetter}
+                         slotPropGetter={slotPropGetter}
+                         dayPropGetter={dayPropGetter}
                          selectable={true}
                          onSelectSlot={handleSelectSlot}
+                         onSelectEvent={handleSelectEvent}
                          onEventDrop={onEventDrop}
                          onEventResize={onEventResize}
                          resizable={true}
                          step={30}
                          timeslots={1}
+                         min={new Date(0, 0, 0, Math.max(0, workStartHour - 1), 0, 0)}
+                         max={new Date(0, 0, 0, Math.min(23, workEndHour + 1), 0, 0)}
                          messages={PT_BR_MESSAGES}
                     />
                </div>
@@ -197,6 +283,7 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                     <AppointmentModal
                          initialDate={appointmentModal.date}
                          initialTime={appointmentModal.time}
+                         editRequest={appointmentModal.editRequest}
                          clients={clients}
                          requests={requests}
                          blockedTimes={blockedTimes}

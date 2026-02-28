@@ -54,6 +54,7 @@ export default function ClientPortal() {
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
+  const [editingRequest, setEditingRequest] = useState<MeasurementRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billingMonth, setBillingMonth] = useState(format(new Date(), 'yyyy-MM'));
 
@@ -145,8 +146,7 @@ export default function ClientPortal() {
     setIsSubmitting(true);
     try {
       const fullAddress = `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}, ${address.neighborhood}, ${address.city} - ${address.state}, CEP: ${address.zipCode}`;
-      await requestService.createRequest({
-        clientId: clientData.id, clientName: clientData.name,
+      const sharedData = {
         projectName, address: fullAddress,
         zipCode: address.zipCode, street: address.street, number: address.number,
         complement: address.complement, neighborhood: address.neighborhood,
@@ -156,17 +156,28 @@ export default function ClientPortal() {
         environmentsCount: environments, estimatedMinutes: estimatedTime,
         requestedDate: format(selectedSlot.start, 'yyyy-MM-dd'),
         requestedTime: format(selectedSlot.start, 'HH:mm'),
-      });
-      if (settings.notifyManagerNewRequest && settings.managerPhone) {
-        import('../services/whatsappService').then(({ whatsappService }) => {
-          whatsappService.sendMessage(settings.managerPhone!, `🔔 *Nova Solicitação de Medição!*\n\nLoja: ${clientData.name}\nProjeto: ${projectName}\nData: ${format(selectedSlot.start, 'dd/MM/yyyy')} às ${format(selectedSlot.start, 'HH:mm')}\nAmbientes: ${environments}\nEndereço: ${fullAddress}\n\nAcesse o painel para aprovar.`, settings);
-        });
+      };
+
+      if (editingRequest?.id) {
+        // Modo edição: atualiza mantendo status 'pending'
+        await requestService.updateRequestStatus(editingRequest.id, 'pending', sharedData);
+        toast.success('Solicitação atualizada com sucesso!');
+        setEditingRequest(null);
+      } else {
+        // Modo criação
+        await requestService.createRequest({ clientId: clientData.id, clientName: clientData.name, ...sharedData });
+        if (settings.notifyManagerNewRequest && settings.managerPhone) {
+          import('../services/whatsappService').then(({ whatsappService }) => {
+            whatsappService.sendMessage(settings.managerPhone!, `🔔 *Nova Solicitação de Medição!*\n\nLoja: ${clientData.name}\nProjeto: ${projectName}\nData: ${format(selectedSlot.start, 'dd/MM/yyyy')} às ${format(selectedSlot.start, 'HH:mm')}\nAmbientes: ${environments}\nEndereço: ${fullAddress}\n\nAcesse o painel para aprovar.`, settings);
+          });
+        }
+        setStep(3);
       }
-      setStep(3);
       fetchData();
     } catch { toast.error('Erro ao enviar solicitação. Tente novamente.'); }
     finally { setIsSubmitting(false); }
   };
+
 
   const handleLogout = async () => { await signOut(auth); navigate('/login'); };
 
@@ -214,6 +225,48 @@ export default function ClientPortal() {
     else if (clientData.model === 'avulso') totalValue = myCompletedRequests.length * clientData.baseValue + totalKm * kmPrice;
   }
   const isPaid = billingStatuses.find(b => b.id === `${clientData?.id}_${billingMonth}`)?.status === 'paid';
+  // Clique em evento no calendário do portal
+  const handleSelectEvent = (event: any) => {
+    if (!event.isMine || event.id === 'preview') return;
+    const req = requests.find(r => r.id === event.id);
+    if (!req) return;
+    if (req.status === 'pending') {
+      // Abre edição pré-preenchida
+      setEditingRequest(req);
+      setProjectName(req.projectName || '');
+      setEnvironments(req.environmentsCount);
+      setAddress({
+        zipCode: req.zipCode || '', street: req.street || '', number: req.number || '',
+        complement: req.complement || '', neighborhood: req.neighborhood || '',
+        city: req.city || '', state: req.state || '',
+        condominiumName: req.condominiumName || '',
+        contactName: req.contactName || '', contactPhone: req.contactPhone || '',
+      });
+      setStep(1);
+      setActiveTab('new_request');
+    } else {
+      toast.info('Este agendamento já foi confirmado e não pode ser editado pelo portal. Entre em contato pelo WhatsApp se precisar de alteração.');
+    }
+  };
+
+  // Visual de indisponibilidade no portal
+  const [workStartHour] = (settings.workStartTime || '08:00').split(':').map(Number);
+  const [workEndHour] = (settings.workEndTime || '18:00').split(':').map(Number);
+  const portalSlotPropGetter = (slotDate: Date) => {
+    const totalMin = slotDate.getHours() * 60 + slotDate.getMinutes();
+    const isOffHours = totalMin < workStartHour * 60 || totalMin >= workEndHour * 60;
+    const dow = slotDate.getDay();
+    const isNonWorkingDay = (dow === 6 && !settings.workOnSaturdays) || (dow === 0 && !settings.workOnSundays);
+    if (isNonWorkingDay) return { style: { backgroundColor: '#e7e5e4', backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 12px)' } };
+    if (isOffHours) return { style: { backgroundColor: '#f5f5f4' } };
+    return {};
+  };
+  const portalDayPropGetter = (dayDate: Date) => {
+    const dow = dayDate.getDay();
+    if ((dow === 6 && !settings.workOnSaturdays) || (dow === 0 && !settings.workOnSundays)) return { style: { backgroundColor: '#e7e5e4' } };
+    return {};
+  };
+
   const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
   const inputClass = "w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-stone-900 focus:border-stone-900 sm:text-sm";
   const labelClass = "block text-sm font-medium text-stone-700 mb-2";
@@ -243,11 +296,25 @@ export default function ClientPortal() {
         {activeTab === 'new_request' && (
           <div className="max-w-4xl mx-auto">
             <header className="mb-8 flex items-center justify-between">
-              <div><h2 className="text-2xl font-bold text-stone-900">Agendar Nova Medição</h2><p className="text-stone-500 mt-1">Preencha os dados e escolha um horário na agenda.</p></div>
-              <div className="hidden md:flex items-center space-x-2 text-sm text-stone-500">
-                <span className={step >= 1 ? 'text-stone-900 font-medium' : ''}>Detalhes</span>
-                <ChevronRight className="w-4 h-4" />
-                <span className={step >= 2 ? 'text-stone-900 font-medium' : ''}>Agenda</span>
+              <div>
+                <h2 className="text-2xl font-bold text-stone-900">
+                  {editingRequest ? '✏️ Editar Solicitação' : 'Agendar Nova Medição'}
+                </h2>
+                <p className="text-stone-500 mt-1">
+                  {editingRequest ? 'Altere os dados e/ou o horário da sua solicitação pendente.' : 'Preencha os dados e escolha um horário na agenda.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {editingRequest && (
+                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironments(1); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-stone-500 hover:text-stone-900 border border-stone-300 px-3 py-1.5 rounded-lg transition-colors">
+                    Cancelar Edição
+                  </button>
+                )}
+                <div className="hidden md:flex items-center space-x-2 text-sm text-stone-500">
+                  <span className={step >= 1 ? 'text-stone-900 font-medium' : ''}>Detalhes</span>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className={step >= 2 ? 'text-stone-900 font-medium' : ''}>Agenda</span>
+                </div>
               </div>
             </header>
 
@@ -328,12 +395,15 @@ export default function ClientPortal() {
                       date={calendarDate}
                       onNavigate={setCalendarDate}
                       eventPropGetter={eventStyleGetter}
+                      slotPropGetter={portalSlotPropGetter}
+                      dayPropGetter={portalDayPropGetter}
                       selectable={true}
                       onSelectSlot={handleSelectSlot}
+                      onSelectEvent={handleSelectEvent}
                       step={30}
                       timeslots={1}
-                      min={new Date(0, 0, 0, 7, 0, 0)}
-                      max={new Date(0, 0, 0, 20, 0, 0)}
+                      min={new Date(0, 0, 0, Math.max(0, workStartHour - 1), 0, 0)}
+                      max={new Date(0, 0, 0, Math.min(23, workEndHour + 1), 0, 0)}
                       messages={PT_BR_MESSAGES}
                     />
                   </div>
