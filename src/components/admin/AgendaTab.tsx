@@ -43,6 +43,7 @@ interface Props {
 export default function AgendaTab({ requests, blockedTimes, settings, clients, onRefresh }: Props) {
      const [view, setView] = useState<View>(Views.WEEK);
      const [date, setDate] = useState(new Date());
+     const [filterClient, setFilterClient] = useState<string>('all');
      const [appointmentModal, setAppointmentModal] = useState<{ date: string; time: string; editRequest?: MeasurementRequest } | null>(null);
      const [blockModal, setBlockModal] = useState<{ start: Date; end: Date } | null>(null);
      const [manualBlockOpen, setManualBlockOpen] = useState(false);
@@ -59,18 +60,20 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
      ];
 
      const calendarEvents: any[] = [
-          ...requests.map(req => {
-               const start = new Date(`${req.requestedDate}T${req.requestedTime}:00`);
-               const end = addMinutes(start, req.estimatedMinutes);
-               return {
-                    id: req.id,
-                    title: `${req.clientName} (${req.environmentsCount} amb)`,
-                    start, end,
-                    status: req.status,
-                    type: 'request',
-                    requestData: req,
-               };
-          }),
+          ...requests
+               .filter(req => filterClient === 'all' || req.clientId === filterClient)
+               .map(req => {
+                    const start = new Date(`${req.requestedDate}T${req.requestedTime}:00`);
+                    const end = addMinutes(start, req.estimatedMinutes);
+                    return {
+                         id: req.id,
+                         title: `${req.clientName} (${req.environmentsCount} amb)`,
+                         start, end,
+                         status: req.status,
+                         type: 'request',
+                         requestData: req,
+                    };
+               }),
           ...blockedTimes.map(bt => ({
                id: bt.id,
                title: `🔒 ${bt.title}`,
@@ -233,7 +236,15 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                               Fora do expediente
                          </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                         <select
+                              value={filterClient}
+                              onChange={e => setFilterClient(e.target.value)}
+                              className="px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-950 focus:border-blue-950 transition-colors"
+                         >
+                              <option value="all">Todas as lojas</option>
+                              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                         </select>
                          <button
                               onClick={() => setManualBlockOpen(true)}
                               className="flex items-center px-3 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-sm font-medium"
@@ -242,9 +253,9 @@ export default function AgendaTab({ requests, blockedTimes, settings, clients, o
                          </button>
                          <button
                               onClick={() => setAppointmentModal({ date: format(new Date(), 'yyyy-MM-dd'), time: format(new Date(), 'HH:mm') })}
-                              className="flex items-center px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium"
+                              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
                          >
-                              <Plus className="w-4 h-4 mr-1.5" /> Agendar
+                              <Plus className="w-4 h-4 mr-1.5" /> Novo Agendamento
                          </button>
                     </div>
                </div>

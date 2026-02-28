@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Building2, Plus, Edit2 } from 'lucide-react';
+import { Building2, Plus, Edit2, KeyRound } from 'lucide-react';
 import { clientService, Client } from '../../services/clientService';
 import { GlobalSettings } from '../../services/settingsService';
 import { toast } from 'sonner';
+import { auth } from '../../lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 interface Props {
      clients: Client[];
@@ -61,6 +63,16 @@ export default function ClientsTab({ clients, settings, onRefresh }: Props) {
           }
      };
 
+     const handleResetPassword = async (email: string) => {
+          try {
+               await sendPasswordResetEmail(auth, email);
+               toast.success(`Link de redefinição de senha enviado para ${email}`);
+          } catch (error: any) {
+               console.error("Erro reset senha:", error);
+               toast.error('Ocorreu um erro ao enviar e-mail de redefinicão. O e-mail está cadastrado no Firebase Auth?');
+          }
+     };
+
      const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-blue-950 focus:border-blue-950 sm:text-sm";
 
      const renderForm = (data: any, setData: (v: any) => void, isEditing: boolean) => (
@@ -78,7 +90,17 @@ export default function ClientsTab({ clients, settings, onRefresh }: Props) {
                          <div className="md:col-span-2 border-b border-slate-200 pb-4 mb-2 mt-4"><h4 className="text-sm font-semibold text-slate-900">Contato e Acesso</h4></div>
                          <div><label className="block text-sm font-medium text-slate-700 mb-2">Contato Responsável</label><input type="text" value={data.responsibleContact || ''} onChange={e => setData({ ...data, responsibleContact: e.target.value })} className={inputClass} /></div>
                          <div><label className="block text-sm font-medium text-slate-700 mb-2">Telefone WhatsApp</label><input type="text" value={data.phone || ''} onChange={e => setData({ ...data, phone: e.target.value })} className={inputClass} placeholder="5511999999999" /></div>
-                         <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-2">E-mail de Login *</label><input required type="email" value={data.contact} onChange={e => setData({ ...data, contact: e.target.value })} className={inputClass} disabled={isEditing} />{isEditing && <p className="text-xs text-slate-500 mt-1">O e-mail de login não pode ser alterado.</p>}</div>
+                         <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-2">E-mail de Login *</label>
+                              <div className="flex gap-2">
+                                   <input required type="email" value={data.contact} onChange={e => setData({ ...data, contact: e.target.value })} className={inputClass} disabled={isEditing} />
+                                   {isEditing && (
+                                        <button type="button" onClick={() => handleResetPassword(data.contact)} className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl whitespace-nowrap text-sm font-medium flex items-center transition-colors">
+                                             <KeyRound className="w-4 h-4 mr-2" /> Redefinir Senha
+                                        </button>
+                                   )}
+                              </div>
+                              {isEditing && <p className="text-xs text-slate-500 mt-1">O e-mail de login não pode ser alterado. Você pode enviar a redefinição de senha.</p>}
+                         </div>
 
                          <div className="md:col-span-2 border-b border-slate-200 pb-4 mb-2 mt-4"><h4 className="text-sm font-semibold text-slate-900">Regras de Cobrança</h4></div>
                          <div className="md:col-span-2">

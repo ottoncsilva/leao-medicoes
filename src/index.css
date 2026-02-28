@@ -91,28 +91,32 @@
   /* blue-600 */
 }
 
+.rbc-toolbar {
+  margin-bottom: 24px !important;
+  font-family: inherit;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .rbc-toolbar button {
-  border-radius: 8px;
-  color: #475569;
-  border-color: #cbd5e1;
-  padding: 6px 14px;
-  font-weight: 500;
-  transition: all 0.2s;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s !important;
+  background-color: #ffffff !important;
+  padding: 6px 16px !important;
+  font-size: 0.875rem !important;
 }
 
 .rbc-toolbar button:hover {
-  background-color: #f1f5f9;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
 }
 
+.rbc-toolbar button:active,
 .rbc-toolbar button.rbc-active {
-  background-color: #1e293b;
-  /* slate-800 */
-  color: white;
-  border-color: #1e293b;
-  box-shadow: none;
-}
-
-.rbc-toolbar button.rbc-active:hover {
   background-color: #0f172a;
   /* slate-900 */
 }

@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, Users, FileText, Settings, LogOut, LayoutDashboard, CalendarIcon } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
+import { db, auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { clientService, Client } from '../services/clientService';
 import { requestService, MeasurementRequest, RequestStatus } from '../services/requestService';
 import { settingsService, GlobalSettings } from '../services/settingsService';
@@ -8,7 +12,6 @@ import { billingService, BillingStatus } from '../services/billingService';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Toaster } from 'sonner';
 
 // Componentes modulares
 import AgendaTab from '../components/admin/AgendaTab';
@@ -24,10 +27,10 @@ type Tab = 'dashboard' | 'agenda' | 'requests' | 'clients' | 'billing' | 'settin
 const NAV_ITEMS: { key: Tab; label: string; Icon: any }[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { key: 'agenda', label: 'Agenda Geral', Icon: CalendarDays },
-  { key: 'requests', label: 'Solicitações', Icon: CalendarIcon },
+  { key: 'requests', label: 'Solicitações', Icon: ClipboardList },
   { key: 'clients', label: 'Clientes (Lojas)', Icon: Users },
-  { key: 'billing', label: 'Faturamento', Icon: FileText },
-  { key: 'settings', label: 'Configurações', Icon: Settings },
+  { key: 'billing', label: 'Faturamento', Icon: DollarSign },
+  { key: 'settings', label: 'Configurações', Icon: SettingsIcon },
 ];
 
 const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
@@ -44,6 +47,16 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [requestFilter, setRequestFilter] = useState<RequestStatus | 'all'>('all');
   const [billingMonth, setBillingMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      toast.error('Erro ao sair do sistema');
+    }
+  };
 
   // Dados do Firebase
   const [clients, setClients] = useState<Client[]>([]);
@@ -122,7 +135,7 @@ export default function AdminDashboard() {
           ))}
         </nav>
         <div className="p-4 border-t border-blue-900 mt-auto">
-          <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-blue-900 hover:text-white transition-colors">
+          <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-blue-900 hover:text-white transition-colors">
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sair</span>
           </button>

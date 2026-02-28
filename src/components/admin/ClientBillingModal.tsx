@@ -94,8 +94,8 @@ const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalE
                          <View style={styles.tableHeader}>
                               <Text style={[styles.th, styles.colDate]}>Data Realiz.</Text>
                               <Text style={[styles.th, styles.colProject]}>Projeto / Cliente Final</Text>
-                              <Text style={[styles.th, styles.colEnvs]}>Ambientes</Text>
-                              <Text style={[styles.th, styles.colKm]}>KM Extra</Text>
+                              <Text style={[styles.th, styles.colEnvs]}>Ambientes (R$)</Text>
+                              <Text style={[styles.th, styles.colKm]}>KM Adicional (R$)</Text>
                               <Text style={[styles.th, styles.colValue]}>Valor Calculado</Text>
                          </View>
                          {requests.map((r, i) => {
@@ -112,8 +112,8 @@ const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalE
                                    <View key={i} style={[styles.tableRow, i === requests.length - 1 ? { borderBottom: 0 } : {}]}>
                                         <Text style={[styles.td, styles.colDate]}>{format(new Date(`${r.requestedDate}T12:00:00`), 'dd/MM/yyyy')}</Text>
                                         <Text style={[styles.td, styles.colProject]}>{r.projectName || r.contactName || 'Sem nome'}</Text>
-                                        <Text style={[styles.td, styles.colEnvs]}>{r.environmentsCount}</Text>
-                                        <Text style={[styles.td, styles.colKm]}>{r.kmDriven || 0}</Text>
+                                        <Text style={[styles.td, styles.colEnvs]}>{r.environmentsCount} ({formatCurrency(itemBaseValue)})</Text>
+                                        <Text style={[styles.td, styles.colKm]}>{r.kmDriven || 0} ({formatCurrency(itemKmValue)})</Text>
                                         <Text style={[styles.td, styles.colValue]}>{formatCurrency(itemTotal)}</Text>
                                    </View>
                               );
@@ -123,16 +123,16 @@ const ClientBillingPDF = ({ client, requests, month, totalValue, totalKm, totalE
                     {/* Totais */}
                     <View style={styles.totalsBox}>
                          <View style={styles.totalRow}>
-                              <Text style={styles.totalLabel}>Total de Medições:</Text>
-                              <Text style={styles.totalValue}>{requests.length}</Text>
+                              <Text style={styles.totalLabel}>Total de Medições/Ambientes:</Text>
+                              <Text style={styles.totalValue}>{requests.length} med / {totalEnvs} amb</Text>
                          </View>
                          <View style={styles.totalRow}>
-                              <Text style={styles.totalLabel}>Total de Ambientes:</Text>
-                              <Text style={styles.totalValue}>{totalEnvs}</Text>
+                              <Text style={styles.totalLabel}>Custo de Medições:</Text>
+                              <Text style={styles.totalValue}>{formatCurrency(requests.reduce((acc, r) => acc + (client.model === 'por_ambiente' ? r.environmentsCount * client.baseValue : client.baseValue), 0))}</Text>
                          </View>
                          <View style={styles.totalRow}>
                               <Text style={styles.totalLabel}>Total de KM Adicional:</Text>
-                              <Text style={styles.totalValue}>{totalKm} km</Text>
+                              <Text style={styles.totalValue}>{totalKm} km ({formatCurrency(totalKm * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice))})</Text>
                          </View>
                          <View style={[styles.totalRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #cbd5e1' }]}>
                               <Text style={[styles.totalLabel, { fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }]}>VALOR DA FATURA:</Text>
@@ -250,31 +250,37 @@ export default function ClientBillingModal({ client, requests, monthStr, totalVa
                                                   <th className="px-4 py-3">Data</th>
                                                   <th className="px-4 py-3">Projeto / Cliente Final</th>
                                                   <th className="px-4 py-3 text-center">Ambientes</th>
+                                                  <th className="px-4 py-3 text-center">Valor Ambiente</th>
                                                   <th className="px-4 py-3 text-center">KM Extra</th>
-                                                  <th className="px-4 py-3">Endereço Realizado</th>
+                                                  <th className="px-4 py-3 text-center">Valor KM</th>
+                                                  <th className="px-4 py-3 text-right">Total Calculado</th>
                                              </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                              {sortedRequests.length === 0 ? (
-                                                  <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Nenhuma medição para detalhar.</td></tr>
-                                             ) : sortedRequests.map(r => (
-                                                  <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                                       <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
-                                                            <CalendarDays className="w-4 h-4 text-slate-400" />
-                                                            {format(new Date(`${r.requestedDate}T12:00:00`), 'dd/MM/yyyy')}
-                                                       </td>
-                                                       <td className="px-4 py-3 text-slate-700">{r.projectName || r.contactName || 'N/A'}</td>
-                                                       <td className="px-4 py-3 text-center text-slate-700 font-medium">
-                                                            <span className="inline-flex items-center justify-center bg-slate-100 text-slate-700 px-2 py-1 rounded-lg text-xs">
-                                                                 <Ruler className="w-3 h-3 mr-1" />{r.environmentsCount}
-                                                            </span>
-                                                       </td>
-                                                       <td className="px-4 py-3 text-center text-slate-700">{r.kmDriven || 0}</td>
-                                                       <td className="px-4 py-3 text-slate-500 text-xs truncate max-w-[200px]" title={r.address}>
-                                                            <div className="flex items-center"><MapPin className="w-3 h-3 mr-1 shrink-0" /> <span className="truncate">{r.address}</span></div>
-                                                       </td>
-                                                  </tr>
-                                             ))}
+                                                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Nenhuma medição para detalhar.</td></tr>
+                                             ) : sortedRequests.map(r => {
+                                                  const itemKmValue = (r.kmDriven || 0) * (client.kmValue > 0 ? client.kmValue : settings.defaultKmPrice);
+                                                  const itemBaseValue = client.model === 'por_ambiente' ? r.environmentsCount * client.baseValue : client.baseValue;
+                                                  return (
+                                                       <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-3 font-medium text-slate-900 flex items-center gap-2">
+                                                                 <CalendarDays className="w-4 h-4 text-slate-400" />
+                                                                 {format(new Date(`${r.requestedDate}T12:00:00`), 'dd/MM/yyyy')}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-slate-700 max-w-[150px] truncate" title={r.projectName || r.contactName || 'N/A'}>{r.projectName || r.contactName || 'N/A'}</td>
+                                                            <td className="px-4 py-3 text-center text-slate-700 font-medium">
+                                                                 <span className="inline-flex items-center justify-center bg-slate-100 text-slate-700 px-2 py-1 rounded-lg text-xs">
+                                                                      <Ruler className="w-3 h-3 mr-1" />{r.environmentsCount}
+                                                                 </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center text-slate-500">{formatCurrency(itemBaseValue)}</td>
+                                                            <td className="px-4 py-3 text-center text-slate-700">{r.kmDriven || 0}</td>
+                                                            <td className="px-4 py-3 text-center text-slate-500">{formatCurrency(itemKmValue)}</td>
+                                                            <td className="px-4 py-3 text-right font-medium text-slate-900">{formatCurrency(itemBaseValue + itemKmValue)}</td>
+                                                       </tr>
+                                                  )
+                                             })}
                                         </tbody>
                                    </table>
                               </div>
