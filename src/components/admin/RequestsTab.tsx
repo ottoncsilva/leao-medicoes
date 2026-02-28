@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, MessageSquare, MapPin, Ruler, Clock, CalendarIcon, Filter, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, MessageSquare, MapPin, Ruler, Clock, CalendarIcon, Filter, Trash2, ExternalLink } from 'lucide-react';
 import { MeasurementRequest, RequestStatus } from '../../services/requestService';
 import { GlobalSettings } from '../../services/settingsService';
 import { Client } from '../../services/clientService';
@@ -137,6 +137,12 @@ export default function RequestsTab({ requests, filter, onFilterChange, clients,
                                    </div>
                                    <p className="text-sm text-slate-600 flex items-center mt-1"><MapPin className="w-4 h-4 mr-1.5 text-slate-400 shrink-0" />{req.address}</p>
                                    {req.contactName && <p className="text-sm text-slate-500 mt-1">Contato: {req.contactName} {req.contactPhone && `— ${req.contactPhone}`}</p>}
+                                   {req.projectLink && (
+                                        <a href={req.projectLink} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center text-sm mt-1.5 font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                             <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                                             Acessar Pasta do Projeto na Nuvem
+                                        </a>
+                                   )}
                                    <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
                                         <span className="flex items-center"><Ruler className="w-4 h-4 mr-1.5" />{req.environmentsCount} ambientes</span>
                                         <span className="flex items-center"><Clock className="w-4 h-4 mr-1.5" />{req.estimatedMinutes} min</span>
@@ -152,9 +158,10 @@ export default function RequestsTab({ requests, filter, onFilterChange, clients,
                               </div>
                               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full lg:w-auto mt-4 lg:mt-0" onClick={e => e.stopPropagation()}>
                                    <a
-                                        href={`https://maps.google.com/?q=${encodeURIComponent(req.address)}`}
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${req.address}${req.city ? ', ' + req.city : ''}`)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={e => e.stopPropagation()}
                                         className="flex items-center justify-center px-4 py-2.5 bg-sky-50 text-sky-700 rounded-xl hover:bg-sky-100 transition-colors text-sm font-medium w-full sm:w-auto"
                                    >
                                         <MapPin className="w-4 h-4 mr-2" /> Navegar

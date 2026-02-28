@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users, CheckSquare, Clock, Menu, MapPin } from 'lucide-react';
+import { Settings as SettingsIcon, CalendarDays, ClipboardList, LayoutDashboard, LogOut, DollarSign, Users, CheckSquare, Clock, Menu, MapPin, ExternalLink, Navigation } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { db, auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -74,26 +74,25 @@ export default function AdminDashboard() {
   // Modais globais
   const [completeModalId, setCompleteModalId] = useState<string | null>(null);
   const [rescheduleModalReq, setRescheduleModalReq] = useState<MeasurementRequest | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [c, r, s, b, bs] = await Promise.all([
+      const [c, s, b, bs] = await Promise.all([
         clientService.getClients(),
-        requestService.getRequests(),
         settingsService.getSettings(),
         blockedTimeService.getBlockedTimes(),
         billingService.getAllBillingStatus(),
       ]);
       setClients(c);
-      setRequests(r.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
       setSettings(s);
       setBlockedTimes(b);
       setBillingStatuses(bs);
 
       if (s.notifyClientDayBefore) {
         const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
-        for (const req of r) {
+        for (const req of requests) {
           if (req.status === 'confirmed' && req.requestedDate === tomorrowStr && !req.clientNotifiedDayBefore) {
             const client = c.find(cl => cl.id === req.clientId);
             if (client?.phone) {
@@ -114,7 +113,25 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    const unsubscribe = requestService.subscribeToRequests((newData, changes) => {
+      setRequests(newData);
+      if (!isInitialLoad.current) {
+        const hasNew = changes.some(change => change.type === 'added');
+        if (hasNew) {
+          toast.success('🔔 Nova solicitação de medição recebida!', { duration: 6000 });
+          // Tenta tocar um som simples de notificação caso o navegador permita
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play().catch(() => { });
+          } catch (e) { }
+        }
+      }
+      isInitialLoad.current = false;
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Dashboard data
   const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -212,10 +229,27 @@ export default function AdminDashboard() {
                           </div>
                           <div className="flex flex-col gap-2 text-sm text-slate-600 pl-2">
                             <span className="flex items-start"><MapPin className="w-4 h-4 mr-1.5 shrink-0 mt-0.5 text-slate-400" /><span className="line-clamp-2">{req.address}</span></span>
+                            {req.projectLink && (
+                              <span className="flex items-center text-blue-600 text-xs">
+                                <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                                <a href={req.projectLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline line-clamp-1">Acessar Projeto na Nuvem</a>
+                              </span>
+                            )}
                             <span className="font-medium text-emerald-700">{req.environmentsCount} ambientes</span>
                           </div>
-                          <div className="mt-3 pl-2">
+                          <div className="mt-3 pl-2 flex items-center justify-between">
                             <span className="text-sm font-medium text-emerald-600 underline underline-offset-2">Completar Medição →</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${req.address}${req.city ? ', ' + req.city : ''}`)}`;
+                                window.open(url, '_blank');
+                              }}
+                              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                            >
+                              <Navigation className="w-3.5 h-3.5" />
+                              Waze / Maps
+                            </button>
                           </div>
                         </div>
                       ))

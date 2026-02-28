@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export type RequestStatus = 'pending' | 'confirmed' | 'rejected' | 'completed' | 'reschedule_requested';
@@ -15,6 +15,7 @@ export interface MeasurementRequest {
   clientId: string; // ID da loja que solicitou
   clientName: string;
   projectName?: string;
+  projectLink?: string; // Link direto do projeto na nuvem (OneDrive, etc)
   address: string;
   zipCode?: string;
   street?: string;
@@ -56,14 +57,13 @@ export const requestService = {
     }
   },
 
-  // Gestor busca todas as solicitações (pode filtrar por status)
-  async getRequests(status?: RequestStatus) {
+  // Gestor busca todas as solicitações (pode filtrar por status e cliente)
+  async getRequests(status?: RequestStatus, clientId?: string) {
     try {
       let q: any = collection(db, COLLECTION_NAME);
 
-      if (status) {
-        q = query(q, where("status", "==", status));
-      }
+      if (status) q = query(q, where("status", "==", status));
+      if (clientId) q = query(q, where("clientId", "==", clientId));
 
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => {
@@ -78,6 +78,35 @@ export const requestService = {
       console.error("Erro ao buscar solicitações:", error);
       throw error;
     }
+  },
+
+  // Inscrição em tempo real com limite de 1000 registros para economizar banda (cobre anos de medições de uma PME)
+  subscribeToRequests(callback: (requests: MeasurementRequest[], changes: any[]) => void, options?: { status?: RequestStatus, clientId?: string }) {
+    let q: any = collection(db, COLLECTION_NAME);
+
+    if (options?.clientId) {
+      q = query(q, where("clientId", "==", options.clientId), orderBy("createdAt", "desc"), limit(1000));
+    } else if (options?.status) {
+      q = query(q, where("status", "==", options.status), orderBy("createdAt", "desc"), limit(1000));
+    } else {
+      q = query(q, orderBy("createdAt", "desc"), limit(1000));
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const requests = snapshot.docs.map(docSnap => {
+        const data = docSnap.data() as any;
+        return {
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date()
+        } as MeasurementRequest;
+      });
+      callback(requests, snapshot.docChanges());
+    }, (error) => {
+      console.error("Erro no onSnapshot de solicitações:", error);
+    });
+
+    return unsubscribe;
   },
 
   // Gestor atualiza o status da solicitação (Aprovar/Recusar)

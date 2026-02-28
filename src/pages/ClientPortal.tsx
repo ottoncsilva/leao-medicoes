@@ -39,6 +39,7 @@ export default function ClientPortal() {
   const [environmentsList, setEnvironmentsList] = useState<Environment[]>([]);
   const [envInput, setEnvInput] = useState('');
   const [projectName, setProjectName] = useState('');
+  const [projectLink, setProjectLink] = useState('');
   const [address, setAddress] = useState<AddressForm>({
     zipCode: '', street: '', number: '', complement: '',
     neighborhood: '', city: '', state: '', condominiumName: '',
@@ -82,15 +83,22 @@ export default function ClientPortal() {
     return () => unsubscribe();
   }, [navigate]);
 
-  useEffect(() => { if (clientData) fetchData(); }, [clientData]);
+  useEffect(() => {
+    if (clientData) {
+      fetchData();
+      const unsubscribe = requestService.subscribeToRequests((newData) => {
+        setRequests(newData.filter(r => r.status !== 'rejected'));
+      }, { clientId: clientData.id });
+      return () => unsubscribe();
+    }
+  }, [clientData]);
 
   const fetchData = async () => {
     try {
-      const [allRequests, allBlocked, fetchedSettings, fetchedBilling] = await Promise.all([
-        requestService.getRequests(), blockedTimeService.getBlockedTimes(),
+      const [allBlocked, fetchedSettings, fetchedBilling] = await Promise.all([
+        blockedTimeService.getBlockedTimes(),
         settingsService.getSettings(), billingService.getAllBillingStatus(),
       ]);
-      setRequests(allRequests.filter(r => r.status !== 'rejected'));
       setBlockedTimes(allBlocked);
       setSettings(fetchedSettings);
       setBillingStatuses(fetchedBilling);
@@ -149,7 +157,7 @@ export default function ClientPortal() {
     try {
       const fullAddress = `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ''}, ${address.neighborhood}, ${address.city} - ${address.state}, CEP: ${address.zipCode}`;
       const sharedData = {
-        projectName, address: fullAddress,
+        projectName, projectLink, address: fullAddress,
         zipCode: address.zipCode, street: address.street, number: address.number,
         complement: address.complement, neighborhood: address.neighborhood,
         city: address.city, state: address.state,
@@ -236,6 +244,7 @@ export default function ClientPortal() {
       // Abre edição pré-preenchida
       setEditingRequest(req);
       setProjectName(req.projectName || '');
+      setProjectLink(req.projectLink || '');
       setEnvironmentsList(req.environments || Array.from({ length: req.environmentsCount || 1 }).map((_, i) => ({ id: `legacy-${i}`, name: `Ambiente ${i + 1}`, isMeasured: true })));
       setAddress({
         zipCode: req.zipCode || '', street: req.street || '', number: req.number || '',
@@ -344,7 +353,7 @@ export default function ClientPortal() {
               </div>
               <div className="flex items-center gap-3">
                 {editingRequest && (
-                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setEnvironmentsList([]); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-slate-500 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+                  <button onClick={() => { setEditingRequest(null); setProjectName(''); setProjectLink(''); setEnvironmentsList([]); setAddress({ zipCode: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: '', condominiumName: '', contactName: '', contactPhone: '' }); }} className="flex items-center text-sm text-slate-500 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors">
                     Cancelar Edição
                   </button>
                 )}
@@ -366,6 +375,10 @@ export default function ClientPortal() {
                     <div>
                       <label className={labelClass}>Nome do Projeto</label>
                       <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className={inputClass} placeholder="Ex: Apto 302 Torre A" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Link da Nuvem (OneDrive/Drive) - Opcional</label>
+                      <input type="url" value={projectLink} onChange={e => setProjectLink(e.target.value)} className={inputClass} placeholder="https://..." />
                     </div>
                     <div className="md:col-span-2">
                       <label className={labelClass}>Ambientes a Medir *</label>

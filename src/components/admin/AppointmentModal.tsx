@@ -47,6 +47,7 @@ export default function AppointmentModal({
 
      const [clientId, setClientId] = useState(editRequest?.clientId || '');
      const [projectName, setProjectName] = useState(editRequest?.projectName || '');
+     const [projectLink, setProjectLink] = useState(editRequest?.projectLink || '');
      const [environmentsList, setEnvironmentsList] = useState<Environment[]>(editRequest?.environments || Array.from({ length: editRequest?.environmentsCount || 1 }).map((_, i) => ({ id: `legacy-${i}`, name: `Ambiente ${i + 1}`, isMeasured: true })));
      const [envInput, setEnvInput] = useState('');
      const [estimatedMinutes, setEstimatedMinutes] = useState(editRequest?.estimatedMinutes || 60);
@@ -123,6 +124,7 @@ export default function AppointmentModal({
                     // Modo edição: atualiza os dados mantendo o status atual
                     await requestService.updateRequestStatus(editRequest.id, editRequest.status, {
                          projectName,
+                         projectLink,
                          address: fullAddress,
                          zipCode: address.zipCode,
                          street: address.street,
@@ -149,6 +151,7 @@ export default function AppointmentModal({
                          clientId: client.id,
                          clientName: client.name,
                          projectName,
+                         projectLink,
                          address: fullAddress,
                          zipCode: address.zipCode,
                          street: address.street,
@@ -222,6 +225,10 @@ export default function AppointmentModal({
                                    <div>
                                         <label className={labelClass}>Nome do Projeto</label>
                                         <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} className={inputClass} placeholder="Ex: Apto 302 Torre A" />
+                                   </div>
+                                   <div className="md:col-span-2 md:col-start-1">
+                                        <label className={labelClass}>Link da Nuvem (OneDrive/Drive)</label>
+                                        <input type="url" value={projectLink} onChange={e => setProjectLink(e.target.value)} className={inputClass} placeholder="https://..." />
                                    </div>
                               </div>
 
@@ -380,7 +387,7 @@ export default function AppointmentModal({
                               {isSubmitting ? 'Salvando...' : isEditMode ? 'Salvar Alterações' : 'Confirmar Agendamento'}
                          </button>
                     </div>
-               </div>
-          </div>
+               </div >
+          </div >
      );
 }
