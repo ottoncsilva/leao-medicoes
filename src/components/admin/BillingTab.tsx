@@ -28,10 +28,10 @@ const pdfStyles = StyleSheet.create({
      footer: { marginTop: 30, borderTop: '1 solid #e7e5e4', paddingTop: 12, color: '#78716c', fontSize: 8 },
 });
 
-interface BillingEntry { clientId: string; clientName: string; totalEnvs: number; totalKm: number; totalValue: number; requestsCount: number; isPaid: boolean; }
-interface PdfProps { billingData: BillingEntry[]; month: string; totalBilling: number; totalEnvs: number; totalKm: number; }
+interface BillingEntry { clientId: string; clientName: string; totalEnvs: number; totalKm: number; totalToll: number; totalValue: number; requestsCount: number; isPaid: boolean; }
+interface PdfProps { billingData: BillingEntry[]; month: string; totalBilling: number; totalEnvs: number; totalKm: number; totalToll: number; }
 
-const BillingDocument = ({ billingData, month, totalBilling, totalEnvs, totalKm }: PdfProps) => (
+const BillingDocument = ({ billingData, month, totalBilling, totalEnvs, totalKm, totalToll }: PdfProps) => (
      <Document title={`Faturamento ${month} — Leão Medições`}>
           <Page size="A4" style={pdfStyles.page}>
                <Text style={pdfStyles.title}>Leão Medições</Text>
@@ -39,8 +39,9 @@ const BillingDocument = ({ billingData, month, totalBilling, totalEnvs, totalKm 
 
                <View style={pdfStyles.summary}>
                     <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>Total a Receber</Text><Text style={pdfStyles.summaryValue}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalBilling)}</Text></View>
-                    <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>Ambientes Medidos</Text><Text style={pdfStyles.summaryValue}>{totalEnvs}</Text></View>
-                    <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>KM Rodados</Text><Text style={pdfStyles.summaryValue}>{totalKm} km</Text></View>
+                    <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>Ambientes</Text><Text style={pdfStyles.summaryValue}>{totalEnvs}</Text></View>
+                    <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>KM Extra</Text><Text style={pdfStyles.summaryValue}>{totalKm} km</Text></View>
+                    <View style={pdfStyles.summaryCard}><Text style={pdfStyles.summaryLabel}>Pedágios</Text><Text style={pdfStyles.summaryValue}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalToll)}</Text></View>
                </View>
 
                <Text style={pdfStyles.sectionTitle}>Detalhamento por Cliente</Text>
@@ -50,6 +51,7 @@ const BillingDocument = ({ billingData, month, totalBilling, totalEnvs, totalKm 
                          <Text style={[pdfStyles.th, { flex: 1, textAlign: 'center' }]}>Medições</Text>
                          <Text style={[pdfStyles.th, { flex: 1, textAlign: 'center' }]}>Ambientes</Text>
                          <Text style={[pdfStyles.th, { flex: 1, textAlign: 'center' }]}>KM</Text>
+                         <Text style={[pdfStyles.th, { flex: 1, textAlign: 'center' }]}>Pedágios</Text>
                          <Text style={[pdfStyles.th, { flex: 2, textAlign: 'right' }]}>Total</Text>
                          <Text style={[pdfStyles.th, { flex: 1, textAlign: 'center' }]}>Status</Text>
                     </View>
@@ -59,6 +61,7 @@ const BillingDocument = ({ billingData, month, totalBilling, totalEnvs, totalKm 
                               <Text style={[pdfStyles.td, { flex: 1, textAlign: 'center' }]}>{b.requestsCount}</Text>
                               <Text style={[pdfStyles.td, { flex: 1, textAlign: 'center' }]}>{b.totalEnvs}</Text>
                               <Text style={[pdfStyles.td, { flex: 1, textAlign: 'center' }]}>{b.totalKm}</Text>
+                              <Text style={[pdfStyles.td, { flex: 1, textAlign: 'center' }]}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(b.totalToll)}</Text>
                               <Text style={[pdfStyles.td, { flex: 2, textAlign: 'right', fontFamily: 'Helvetica-Bold' }]}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(b.totalValue)}</Text>
                               <Text style={[pdfStyles.td, { flex: 1, textAlign: 'center', color: b.isPaid ? '#059669' : '#d97706' }]}>{b.isPaid ? 'Pago' : 'Em Aberto'}</Text>
                          </View>
@@ -98,12 +101,13 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
           else if (client.model === 'pacote') { const extra = Math.max(0, totalEnvs - (client.limitEnvs || 0)); totalValue = client.baseValue + extra * (client.baseValue / (client.limitEnvs || 1)) + totalKm * kmPrice + totalToll; }
           else if (client.model === 'avulso') totalValue = reqs.length * client.baseValue + totalKm * kmPrice + totalToll;
           const statusRecord = billingStatuses.find(b => b.id === `${client.id}_${billingMonth}`);
-          return { clientId: client.id!, clientName: client.name, totalEnvs, totalKm, totalValue, requestsCount: reqs.length, isPaid: statusRecord?.status === 'paid' };
+          return { clientId: client.id!, clientName: client.name, totalEnvs, totalKm, totalToll, totalValue, requestsCount: reqs.length, isPaid: statusRecord?.status === 'paid' };
      }).filter(b => b.requestsCount > 0);
 
      const totalBilling = billingData.reduce((a, b) => a + b.totalValue, 0);
      const totalEnvsMonth = billingData.reduce((a, b) => a + b.totalEnvs, 0);
      const totalKmMonth = billingData.reduce((a, b) => a + b.totalKm, 0);
+     const totalTollMonth = billingData.reduce((a, b) => a + b.totalToll, 0);
 
      const chartData = Array.from({ length: 6 }, (_, i) => {
           const d = subMonths(new Date(), 5 - i);
@@ -142,6 +146,7 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                          totalBilling={totalBilling}
                          totalEnvs={totalEnvsMonth}
                          totalKm={totalKmMonth}
+                         totalToll={totalTollMonth}
                     />
                ).toBlob();
                const url = URL.createObjectURL(blob);
@@ -168,10 +173,11 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                     </div>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Total a Receber</p><h3 className="text-2xl font-bold text-slate-900">{formatCurrency(totalBilling)}</h3></div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Ambientes Medidos</p><h3 className="text-2xl font-bold text-slate-900">{totalEnvsMonth}</h3></div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">KM Rodados</p><h3 className="text-2xl font-bold text-slate-900">{totalKmMonth} km</h3></div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-sm font-medium text-slate-500 mb-1">Pedágios</p><h3 className="text-2xl font-bold text-slate-900">{formatCurrency(totalTollMonth)}</h3></div>
                </div>
 
                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -183,13 +189,14 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                                         <th className="px-6 py-4 text-center">Medições</th>
                                         <th className="px-6 py-4 text-center">Ambientes</th>
                                         <th className="px-6 py-4 text-center">KM Rodados</th>
+                                        <th className="px-6 py-4 text-center">Pedágios</th>
                                         <th className="px-6 py-4 text-right">Valor Total</th>
                                         <th className="px-6 py-4 text-center">Status</th>
                                    </tr>
                               </thead>
                               <tbody className="divide-y divide-stone-200">
                                    {billingData.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr>
+                                        <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Nenhuma medição realizada neste mês.</td></tr>
                                    ) : billingData.map(bill => (
                                         <tr key={bill.clientId} onClick={() => setSelectedBill(bill)} className="hover:bg-slate-50 transition-colors cursor-pointer group">
                                              <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-2">
@@ -199,6 +206,7 @@ export default function BillingTab({ clients, requests, billingStatuses, setting
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.requestsCount}</td>
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.totalEnvs}</td>
                                              <td className="px-6 py-4 text-center text-slate-600">{bill.totalKm}</td>
+                                             <td className="px-6 py-4 text-center text-slate-600">{formatCurrency(bill.totalToll)}</td>
                                              <td className="px-6 py-4 text-right font-medium text-slate-900">{formatCurrency(bill.totalValue)}</td>
                                              <td className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
                                                   {bill.isPaid ? (
